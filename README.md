@@ -20,7 +20,6 @@ Axom runs as **stdio MCP** - your IDE spawns it automatically. No manual server 
 - **Python 3.11+**
 - **SQLite** (included with Python)
 - **Git**
-- **uv** (optional, for faster installation and `uvx` support)
 
 ### Installation
 
@@ -36,9 +35,10 @@ make install
 
 **What `make install` does:**
 1. Installs Python dependencies.
-2. Creates `.env` from `.env.example`.
-3. Configures all detected agents (Cursor, Trae, etc.).
-4. Installs Axom rules and skills for each agent.
+2. Installs Axom in editable mode (`pip install -e .`).
+3. Creates `.env` from `.env.example`.
+4. Configures all detected agents (Cursor, Trae, etc.).
+5. Installs Axom rules and skills for each agent.
 
 ### Verification
 
@@ -46,16 +46,55 @@ make install
 make test      # Run tests
 ```
 
+### Post-Install Check
+
+Verify the local command is available:
+
+```bash
+command -v axom-mcp
+```
+
+Verify MCP initialization against the installed server:
+
+```bash
+python3 - <<'PY'
+import asyncio
+from mcp import ClientSession
+from mcp.client.stdio import stdio_client, StdioServerParameters
+
+async def main():
+    params = StdioServerParameters(command="axom-mcp", args=[])
+    async with stdio_client(params) as (read_stream, write_stream):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            tools = await session.list_tools()
+            print("tool_count:", len(tools.tools))
+
+asyncio.run(main())
+PY
+```
+
 ---
 
 ## Client Configuration
 
 `make install` automatically configures MCP for detected agents. The installer uses the best available command:
-1. **`uvx axom-mcp`** (if `uv` is installed)
+1. **`axom-mcp`** (if in PATH)
 2. **`axom`** (if in PATH)
-3. **`python -m axom_mcp`** (fallback)
+3. **`python -m axom_mcp.server`** (fallback)
 
 See [docs/agents/INDEX.md](docs/agents/INDEX.md) for detailed agent configuration.
+
+For Zed, `~/.config/zed/settings.json` should contain:
+
+```json
+"context_servers": {
+  "axom": {
+    "command": "axom-mcp",
+    "args": []
+  }
+}
+```
 
 ---
 

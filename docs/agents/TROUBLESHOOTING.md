@@ -14,6 +14,24 @@ Common issues and solutions for Axom MCP.
 2. Verify Axom MCP is configured in your client.
 3. Check server logs for startup errors.
 
+### Context Server Timeout
+
+**Error:** `axom context server failed to start: Context server request timeout`
+
+**Common causes:**
+
+- Client MCP config still points to a stale command (for example old `uvx` entries).
+- `axom-mcp` not installed in the current Python environment.
+
+**Checks:**
+
+1. Re-run install from the repo root: `make install`.
+2. Confirm command exists: `command -v axom-mcp`.
+3. For Zed, verify `~/.config/zed/settings.json` uses:
+   - `context_servers.axom.command = "axom-mcp"`
+   - `context_servers.axom.args = []`
+4. Restart the IDE/client after config changes.
+
 ### Chain Execution Failed
 
 **Error:** Chain stops unexpectedly or variables not resolved.

@@ -89,7 +89,7 @@ AGENT  := 🤖
 # Logging Helpers - cross-platform
 # Always use echo since Windows cmd.exe doesn't have printf reliably available
 define LOG_STEP
-	@echo 
+	@echo
 endef
 define LOG_SUCCESS
 	@echo   [OK]
@@ -104,10 +104,14 @@ define LOG_ERROR
 	@echo   [ERROR]
 endef
 define LOG_HEADER
-	@echo 
+	@echo
 endef
 
 DRY_RUN ?= 0
+INSTALLER_ARGS :=
+ifeq ($(DRY_RUN),1)
+INSTALLER_ARGS += --dry-run
+endif
 
 .DEFAULT_GOAL := help
 
@@ -121,7 +125,7 @@ ifeq ($(OS),Windows_NT)
 	@echo   ---------------------------------------------
 	@echo   Setup Commands
 	@echo     make install   Full install
-	@echo     make db        Start DB
+	@echo     make db        Check SQLite database status
 	@echo     make agents    Auto-apply MCP configs
 	@echo     make test      Run tests
 	@echo     make run       Manually run MCP server
@@ -138,7 +142,7 @@ else
 	printf '%b\n' "$${H_SECTION}  Setup Commands$${H_RESET}"; \
 	printf '%b\n' "    $${H_TARGET}make install$${H_RESET}   $${H_DIM}[-dry-run]$${H_RESET}  Full install"; \
 	printf '%b\n' ""; \
-	printf '%b\n' "    $${H_TARGET}make db$${H_RESET}        $${H_DIM}[-config]$${H_RESET}     Start DB (Default: Docker, System fallback)"; \
+	printf '%b\n' "    $${H_TARGET}make db$${H_RESET}                        Check SQLite database status"; \
 	printf '%b\n' "    $${H_TARGET}make agents$${H_RESET}    $${H_DIM}[-dry-run]$${H_RESET}    Auto-apply MCP configs for detected agents"; \
 	printf '%b\n' "    $${H_TARGET}make test$${H_RESET}      $${H_DIM}[-core|-int]$${H_RESET}  Run core/integration tests"; \
 	printf '%b\n' ""; \
@@ -158,9 +162,10 @@ install:
 	@echo === Axom MCP - Complete Install ===
 	@echo Step 1: Installing Python dependencies
 	@$(PYTHON) -m pip install -r requirements.txt --quiet
+	@$(PYTHON) -m pip install -e . --quiet
 	@echo   Dependencies installed
 	@echo Step 2: Installing MCP Configuration
-	@$(PYTHON) scripts/install_agent_config.py
+	@$(PYTHON) scripts/install_agent_config.py $(INSTALLER_ARGS)
 	@echo === INSTALL COMPLETE ===
 	@echo Run 'make run' to start the server
 
@@ -366,13 +371,11 @@ ifeq ($(OS),Windows_NT)
 	@echo   Install Options
 	@echo     DRY_RUN=1           Preview install without changes
 	@echo     AUTO_SYSTEM_DEPS=1  Auto-install system dependencies
-	@echo     REQUIRE_PSQL=0      Skip PostgreSQL requirement
 else
 	@printf "\n"
 	@printf "  $(BOLD)Install Options$(RESET)\n"
 	@printf "    DRY_RUN=1           Preview install without changes\n"
 	@printf "    AUTO_SYSTEM_DEPS=1 Auto-install system dependencies\n"
-	@printf "    REQUIRE_PSQL=0      Skip PostgreSQL requirement\n"
 	@printf "\n"
 endif
 

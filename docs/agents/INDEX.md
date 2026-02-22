@@ -123,9 +123,9 @@ Challenges itself, other agents, and users to re-think.
 | :----------------- | :-------------------- | :------------------------------------------------------ |
 | Search & reflect   | `action: "search"`    | `{"action": "search", "query": "auth bug", "limit": 5}` |
 | Store with depth   | `action: "write"`     | Include REFLECTION in content                           |
-| Associate memories | `action: "associate"` | Link related knowledge                                  |
 | Read specific      | `action: "read"`      | `{"action": "read", "name": "bugfix_xyz_20260203"}`     |
 | List all           | `action: "list"`      | `{"action": "list", "limit": 10}`                       |
+| Delete specific    | `action: "delete"`    | `{"action": "delete", "name": "bugfix_xyz_20260203"}`   |
 
 ---
 
