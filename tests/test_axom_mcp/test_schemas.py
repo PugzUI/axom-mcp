@@ -4,17 +4,17 @@ import pytest
 from pydantic import ValidationError
 
 from axom_mcp.schemas import (
-    MemoryType,
-    ImportanceLevel,
-    MemoryInput,
-    MemoryWriteInput,
-    MemorySearchInput,
-    MemoryReadInput,
-    MemoryListInput,
-    MemoryDeleteInput,
-    ExecInput,
     AnalyzeInput,
     DiscoverInput,
+    ExecInput,
+    ImportanceLevel,
+    MemoryDeleteInput,
+    MemoryInput,
+    MemoryListInput,
+    MemoryReadInput,
+    MemorySearchInput,
+    MemoryType,
+    MemoryWriteInput,
     TransformInput,
 )
 
@@ -273,7 +273,9 @@ class TestExecInput:
         data = {
             "operation": "read",
             "target": "/file.txt",
-            "chain": [{"tool": "axom_mcp_transform", "args": {"output_format": "json"}}],
+            "chain": [
+                {"tool": "axom_mcp_transform", "args": {"output_format": "json"}}
+            ],
         }
         result = ExecInput(**data)
         assert result.chain is not None

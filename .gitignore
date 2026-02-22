@@ -64,6 +64,7 @@ Thumbs.db
 # Project specific
 node_modules/
 docs/registry-helper.md
+docs/cleanup.md
 *.db
 *.db-journal
 *.sqlite

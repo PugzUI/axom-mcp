@@ -15,7 +15,7 @@ import logging
 from typing import Any, Dict
 
 from ..database import get_db_manager
-from ..schemas import MemoryInput, MemoryType, ImportanceLevel
+from ..schemas import ImportanceLevel, MemoryInput, MemoryType
 
 logger = logging.getLogger(__name__)
 
@@ -65,12 +65,16 @@ async def _handle_write(input_data: MemoryInput, db) -> str:
         memory_id = await db.create_memory(
             name=input_data.name,
             content=input_data.content,
-            memory_type=memory_type.value
-            if isinstance(memory_type, MemoryType)
-            else memory_type,
-            importance=importance.value
-            if isinstance(importance, ImportanceLevel)
-            else importance,
+            memory_type=(
+                memory_type.value
+                if isinstance(memory_type, MemoryType)
+                else memory_type
+            ),
+            importance=(
+                importance.value
+                if isinstance(importance, ImportanceLevel)
+                else importance
+            ),
             tags=input_data.tags,
             source_agent=input_data.source_agent,
             expires_in_days=input_data.expires_in_days,
@@ -111,9 +115,11 @@ async def _handle_read(input_data: MemoryInput, db) -> str:
                     "memory_type": assoc["memory_type"],
                     "importance": assoc["importance"],
                     "tags": assoc.get("tags", []),
-                    "created_at": assoc["created_at"].isoformat()
-                    if assoc.get("created_at")
-                    else None,
+                    "created_at": (
+                        assoc["created_at"].isoformat()
+                        if assoc.get("created_at")
+                        else None
+                    ),
                 }
             )
 
@@ -129,12 +135,16 @@ async def _handle_read(input_data: MemoryInput, db) -> str:
                     "tags": memory.get("tags", []),
                     "source_agent": memory.get("source_agent"),
                     "parent_memory_id": memory.get("parent_memory_id"),
-                    "created_at": memory["created_at"].isoformat()
-                    if memory.get("created_at")
-                    else None,
-                    "updated_at": memory["updated_at"].isoformat()
-                    if memory.get("updated_at")
-                    else None,
+                    "created_at": (
+                        memory["created_at"].isoformat()
+                        if memory.get("created_at")
+                        else None
+                    ),
+                    "updated_at": (
+                        memory["updated_at"].isoformat()
+                        if memory.get("updated_at")
+                        else None
+                    ),
                     "associated_memories": formatted_associations,
                 },
             }
@@ -181,9 +191,9 @@ async def _handle_list(input_data: MemoryInput, db) -> str:
                         "memory_type": m["memory_type"],
                         "importance": m["importance"],
                         "tags": m.get("tags", []),
-                        "created_at": m["created_at"].isoformat()
-                        if m.get("created_at")
-                        else None,
+                        "created_at": (
+                            m["created_at"].isoformat() if m.get("created_at") else None
+                        ),
                     }
                     for m in memories
                 ],
@@ -234,9 +244,11 @@ async def _handle_search(input_data: MemoryInput, db) -> str:
                 "results": [
                     {
                         "name": m["name"],
-                        "content": m["content"][:500] + "..."
-                        if len(m["content"]) > 500
-                        else m["content"],
+                        "content": (
+                            m["content"][:500] + "..."
+                            if len(m["content"]) > 500
+                            else m["content"]
+                        ),
                         "memory_type": m["memory_type"],
                         "importance": m["importance"],
                         "relevance": m.get("rank", 0),

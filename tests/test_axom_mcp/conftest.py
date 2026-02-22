@@ -11,13 +11,13 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock
 
-import pytest
 import aiosqlite
-
+import pytest
 
 # ============================================================================
 # Event Loop Fixture
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -36,27 +36,27 @@ def event_loop():
 def mock_connection():
     """Create a mock aiosqlite database connection."""
     from contextlib import asynccontextmanager
-    
+
     conn = AsyncMock()
-    
+
     # Create a mock cursor for async context manager
     mock_cursor = AsyncMock()
     mock_cursor.fetchone = AsyncMock(return_value=None)
     mock_cursor.fetchall = AsyncMock(return_value=[])
     mock_cursor.rowcount = 0
-    
+
     # Mock the execute method to return an async context manager
     @asynccontextmanager
     async def mock_execute(query, params=None):
         """Mock execute that returns an async context manager."""
         yield mock_cursor
-    
+
     conn.execute = mock_execute
     conn.commit = AsyncMock(return_value=None)
     conn.rollback = AsyncMock(return_value=None)
     conn.close = AsyncMock(return_value=None)
     conn.row_factory = None
-    
+
     return conn
 
 
@@ -64,20 +64,20 @@ def mock_connection():
 def mock_db_manager(mock_connection):
     """Create a mock DatabaseManager instance."""
     from axom_mcp.database import DatabaseManager
-    
+
     manager = DatabaseManager(":memory:")
     manager.conn = mock_connection
-    
+
     return manager
 
 
 @pytest.fixture
 async def sqlite_db():
     """Create an in-memory SQLite database for fast tests."""
-    
+
     db = await aiosqlite.connect(":memory:")
     db.row_factory = aiosqlite.Row
-    
+
     # Create tables
     await db.execute("""
         CREATE TABLE IF NOT EXISTS memories (
@@ -103,7 +103,7 @@ async def sqlite_db():
             metadata TEXT DEFAULT '{}'
         )
     """)
-    
+
     await db.execute("""
         CREATE TABLE IF NOT EXISTS memory_access_log (
             id TEXT PRIMARY KEY,
@@ -114,7 +114,7 @@ async def sqlite_db():
             created_at TEXT
         )
     """)
-    
+
     await db.commit()
     yield db
     await db.close()
@@ -197,6 +197,7 @@ def sample_memories_list() -> List[Dict[str, Any]]:
 # File System Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def temp_directory():
     """Create a temporary directory for file operations tests."""
@@ -217,6 +218,7 @@ def temp_file(temp_directory):
 def temp_json_file(temp_directory):
     """Create a temporary JSON file."""
     import json
+
     file_path = os.path.join(temp_directory, "test.json")
     content = {"key": "value", "nested": {"item": 1, "list": [1, 2, 3]}}
     with open(file_path, "w") as f:
@@ -288,6 +290,7 @@ if __name__ == "__main__":
 # ============================================================================
 # Handler Input Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def memory_write_input() -> Dict[str, Any]:
@@ -434,6 +437,7 @@ def transform_yaml_json_input() -> Dict[str, Any]:
 # Chain Reaction Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def chain_read_transform(temp_json_file) -> Dict[str, Any]:
     """Chain: read file -> transform to YAML."""
@@ -475,36 +479,40 @@ def chain_analyze_memory(temp_python_file) -> Dict[str, Any]:
 # MCP Server Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def mcp_server():
     """Create an MCP server instance for testing."""
     from axom_mcp.server import create_server
+
     return create_server()
 
 
 @pytest.fixture
 def mock_stdio():
     """Mock stdio transport for MCP server testing."""
+
     class MockStdio:
         def __init__(self):
             self.input_queue = asyncio.Queue()
             self.output_queue = asyncio.Queue()
-        
+
         async def send(self, message: str) -> None:
             await self.input_queue.put(message)
-        
+
         async def receive(self) -> str:
             return await self.output_queue.get()
-        
+
         async def write_response(self, response: str) -> None:
             await self.output_queue.put(response)
-    
+
     return MockStdio()
 
 
 # ============================================================================
 # Environment Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def clean_env():
@@ -515,15 +523,15 @@ def clean_env():
         "ALLOWED_PATHS",
     ]
     original_values = {}
-    
+
     # Store original values
     for var in env_vars:
         if var in os.environ:
             original_values[var] = os.environ[var]
             del os.environ[var]
-    
+
     yield
-    
+
     # Restore original values
     for var, value in original_values.items():
         os.environ[var] = value
@@ -543,11 +551,18 @@ def test_env(clean_env):
 # Pytest Configuration
 # ============================================================================
 
+
 def pytest_configure(config):
     """Configure custom pytest markers."""
-    config.addinivalue_line("markers", "unit: Unit tests (fast, no external dependencies)")
-    config.addinivalue_line("markers", "integration: Integration tests (may require database)")
+    config.addinivalue_line(
+        "markers", "unit: Unit tests (fast, no external dependencies)"
+    )
+    config.addinivalue_line(
+        "markers", "integration: Integration tests (may require database)"
+    )
     config.addinivalue_line("markers", "slow: Slow tests (skip with -m 'not slow')")
     config.addinivalue_line("markers", "database: Tests requiring database connection")
     config.addinivalue_line("markers", "filesystem: Tests requiring filesystem access")
-    config.addinivalue_line("markers", "drift: Drift detection tests for workflow validation")
+    config.addinivalue_line(
+        "markers", "drift: Drift detection tests for workflow validation"
+    )

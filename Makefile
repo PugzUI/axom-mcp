@@ -89,22 +89,22 @@ AGENT  := 🤖
 # Logging Helpers - cross-platform
 # Always use echo since Windows cmd.exe doesn't have printf reliably available
 define LOG_STEP
-	@echo
+	echo
 endef
 define LOG_SUCCESS
-	@echo   [OK]
+	echo   [OK]
 endef
 define LOG_INFO
-	@echo   [INFO]
+	echo   [INFO]
 endef
 define LOG_WARN
-	@echo   [WARN]
+	echo   [WARN]
 endef
 define LOG_ERROR
-	@echo   [ERROR]
+	echo   [ERROR]
 endef
 define LOG_HEADER
-	@echo
+	echo
 endef
 
 DRY_RUN ?= 0
@@ -262,10 +262,10 @@ agents-dry-run:
 
 agents-clean:
 	@if [ -n "$(CUSTOM)" ]; then \
-		$(LOG_INFO) "Cleaning custom server: $(CUSTOM)"; \
+		echo "  [INFO] Cleaning custom server: $(CUSTOM)"; \
 		$(PYTHON) scripts/install_agent_config.py --custom $(CUSTOM); \
 	else \
-		$(LOG_INFO) "Cleaning Axom configurations"; \
+		echo "  [INFO] Cleaning Axom configurations"; \
 		$(PYTHON) scripts/install_agent_config.py --clean; \
 	fi
 

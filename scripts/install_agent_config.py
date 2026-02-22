@@ -997,6 +997,7 @@ def clean_configs(
 ) -> None:
     """Remove Axom configs, rules, and skills from all agents."""
     server_name = custom_server or "axom"
+    server_name_lower = server_name.lower()
 
     if dry_run:
         _print(
@@ -1038,8 +1039,19 @@ def clean_configs(
                         if format_type == "json":
                             data = _load_json_path(path)
                             servers = data.get(key, {})
-                            if server_name in servers:
-                                del servers[server_name]
+                            if isinstance(servers, dict):
+                                # Remove all matching keys case-insensitively.
+                                to_remove = [
+                                    name
+                                    for name in servers.keys()
+                                    if isinstance(name, str)
+                                    and name.lower() == server_name_lower
+                                ]
+                            else:
+                                to_remove = []
+                            if to_remove:
+                                for name in to_remove:
+                                    del servers[name]
                                 data[key] = servers
                                 path.write_text(
                                     json.dumps(data, indent=2, sort_keys=True) + "\n",
@@ -1051,8 +1063,10 @@ def clean_configs(
                         elif format_type == "jsonc":
                             content = path.read_text(encoding="utf-8")
                             pattern = rf'"{re.escape(server_name)}"\s*:\s*\{{[^}}]*\}}'
-                            if re.search(pattern, content):
-                                content = re.sub(pattern, "", content)
+                            if re.search(pattern, content, flags=re.IGNORECASE):
+                                content = re.sub(
+                                    pattern, "", content, flags=re.IGNORECASE
+                                )
                                 content = re.sub(r",\s*,", ",", content)
                                 content = re.sub(r"\{\s*,", "{", content)
                                 content = re.sub(r",\s*\}", "}", content)
@@ -1064,17 +1078,22 @@ def clean_configs(
                             content = path.read_text(encoding="utf-8")
                             pattern = rf"^\[{re.escape(key)}\.{re.escape(server_name)}\].*?(?=^\[|\Z)"
                             if re.search(
-                                pattern, content, flags=re.MULTILINE | re.DOTALL
+                                pattern,
+                                content,
+                                flags=re.MULTILINE | re.DOTALL | re.IGNORECASE,
                             ):
                                 new_content = re.sub(
-                                    pattern, "", content, flags=re.MULTILINE | re.DOTALL
+                                    pattern,
+                                    "",
+                                    content,
+                                    flags=re.MULTILINE | re.DOTALL | re.IGNORECASE,
                                 ).strip()
                                 pattern_env = rf"^\[{re.escape(key)}\.{re.escape(server_name)}\.env\].*?(?=^\[|\Z)"
                                 new_content = re.sub(
                                     pattern_env,
                                     "",
                                     new_content,
-                                    flags=re.MULTILINE | re.DOTALL,
+                                    flags=re.MULTILINE | re.DOTALL | re.IGNORECASE,
                                 ).strip()
                                 path.write_text(new_content + "\n", encoding="utf-8")
                                 _print_agent_header()

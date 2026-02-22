@@ -7,17 +7,17 @@ Migrated from PostgreSQL to SQLite for simplified deployment.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import aiosqlite
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -67,41 +67,42 @@ class Memory:
     status: MemoryStatus = MemoryStatus.ACTIVE
     content: str = ""
     summary: Optional[str] = None
-    tags: List[str] = None
+    tags: List[str] = field(default_factory=list)
     source_agent: Optional[str] = None
     source_context: Optional[str] = None
     source_tool: Optional[str] = None
     parent_memory_id: Optional[str] = None
-    associated_memories: List[str] = None
-    metadata: Dict[str, Any] = None
+    associated_memories: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     accessed_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     access_count: int = 0
 
-    def __post_init__(self):
-        if self.tags is None:
-            self.tags = []
-        if self.associated_memories is None:
-            self.associated_memories = []
-        if self.metadata is None:
-            self.metadata = {}
+    def __post_init__(self) -> None:
+        pass
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert memory to dictionary."""
         return {
             "id": self.id,
             "name": self.name,
-            "memory_type": self.memory_type.value
-            if isinstance(self.memory_type, MemoryType)
-            else self.memory_type,
-            "importance": self.importance.value
-            if isinstance(self.importance, ImportanceLevel)
-            else self.importance,
-            "status": self.status.value
-            if isinstance(self.status, MemoryStatus)
-            else self.status,
+            "memory_type": (
+                self.memory_type.value
+                if isinstance(self.memory_type, MemoryType)
+                else self.memory_type
+            ),
+            "importance": (
+                self.importance.value
+                if isinstance(self.importance, ImportanceLevel)
+                else self.importance
+            ),
+            "status": (
+                self.status.value
+                if isinstance(self.status, MemoryStatus)
+                else self.status
+            ),
             "content": self.content,
             "summary": self.summary,
             "tags": self.tags,
@@ -152,6 +153,12 @@ class DatabaseManager:
             ),
         }
 
+    def _get_conn(self) -> aiosqlite.Connection:
+        """Get database connection or raise if not connected."""
+        if self.conn is None:
+            raise RuntimeError("Database not initialized. Call initialize() first.")
+        return self.conn
+
     async def initialize(self) -> None:
         """Initialize Axom database connection."""
         try:
@@ -174,29 +181,30 @@ class DatabaseManager:
 
     async def ensure_schema(self) -> None:
         """Ensure the Axom database schema exists."""
-        
+
         # Read schema from axom_db_sqlite.sql file
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))
         schema_path = os.path.join(project_root, "axom_db_sqlite.sql")
 
         try:
-            with open(schema_path, "r", encoding='utf-8') as f:
+            with open(schema_path, "r", encoding="utf-8") as f:
                 schema_sql = f.read()
         except FileNotFoundError:
             logger.error(f"Schema file not found at {schema_path}")
             raise
 
-        # executescript is synchronous in standard sqlite3, 
+        # executescript is synchronous in standard sqlite3,
         # but aiosqlite provides an async version.
+        conn = self._get_conn()
         try:
-            await self.conn.executescript(schema_sql)
+            await conn.executescript(schema_sql)
         except Exception as e:
             # Ignore some expected errors (e.g., table already exists)
             if "already exists" not in str(e).lower():
                 logger.warning(f"Schema statement warning: {e}")
 
-        await self.conn.commit()
+        await conn.commit()
         logger.info("Database schema ensured from axom_db_sqlite.sql")
 
     async def close(self) -> None:
@@ -249,12 +257,15 @@ class DatabaseManager:
         expires_at = None
         if expires_in_days:
             # Explicit expiration specified in days
-            expires_at = (datetime.now(timezone.utc) + timedelta(days=expires_in_days)).isoformat()
+            expires_at = (
+                datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+            ).isoformat()
         elif self.expiration_days.get(memory_type, 0) > 0:
             # Use default expiration for memory type
-            expires_at = (datetime.now(timezone.utc) + timedelta(
-                days=self.expiration_days[memory_type]
-            )).isoformat()
+            expires_at = (
+                datetime.now(timezone.utc)
+                + timedelta(days=self.expiration_days[memory_type])
+            ).isoformat()
 
         # Normalize and sort tags for consistent storage
         if tags:
@@ -265,8 +276,9 @@ class DatabaseManager:
         metadata_json = json.dumps(metadata)
 
         now = datetime.now(timezone.utc).isoformat()
+        conn = self._get_conn()
 
-        await self.conn.execute(
+        await conn.execute(
             """
             INSERT INTO memories (
                 id, name, memory_type, importance, content, tags, source_agent,
@@ -292,14 +304,15 @@ class DatabaseManager:
                 now,
             ),
         )
-        await self.conn.commit()
+        await conn.commit()
 
         logger.info(f"Created memory '{name}' with ID {memory_id}")
         return memory_id
 
     async def get_memory(self, memory_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve a memory by ID."""
-        async with self.conn.execute(
+        conn = self._get_conn()
+        async with conn.execute(
             "SELECT * FROM memories WHERE id = ? AND status = 'active'",
             (memory_id,),
         ) as cursor:
@@ -312,7 +325,8 @@ class DatabaseManager:
 
     async def get_memory_by_name(self, name: str) -> Optional[Dict[str, Any]]:
         """Retrieve a memory by name."""
-        async with self.conn.execute(
+        conn = self._get_conn()
+        async with conn.execute(
             "SELECT * FROM memories WHERE name = ? AND status = 'active'",
             (name,),
         ) as cursor:
@@ -370,15 +384,19 @@ class DatabaseManager:
         # Filter by tags if provided (since JSON array matching is complex in SQLite)
         if tags:
             results = [
-                r for r in results
-                if any(tag.lower() in [t.lower() for t in r.get("tags", [])] for tag in tags)
+                r
+                for r in results
+                if any(
+                    tag.lower() in [t.lower() for t in r.get("tags", [])]
+                    for tag in tags
+                )
             ]
 
         return results
 
     async def search_memories(
         self,
-        query: str,
+        query: Optional[str] = None,
         memory_type: Optional[str] = None,
         importance: Optional[str] = None,
         tags: Optional[List[str]] = None,
@@ -391,8 +409,11 @@ class DatabaseManager:
         params = []
 
         # Join with FTS table
-        fts_query = "memories_fts MATCH ?"
-        params.append(query)
+        fts_clause = ""
+        if query:
+            fts_clause = "JOIN memories_fts fts ON m.id = fts.id"
+            conditions.append("memories_fts MATCH ?")
+            params.append(query)
 
         if memory_type:
             conditions.append("m.memory_type = ?")
@@ -404,17 +425,21 @@ class DatabaseManager:
 
         params.append(limit)
 
-        # Use FTS5 with bm25 ranking
+        # Use FTS5 with bm25 ranking if query is provided
+        rank_col = ", bm25(memories_fts) as rank" if query else ""
+        order_clause = "ORDER BY rank" if query else "ORDER BY m.updated_at DESC"
+
         sql_query = f"""
-            SELECT m.*, bm25(memories_fts) as rank
+            SELECT m.*{rank_col}
             FROM memories m
-            JOIN memories_fts fts ON m.id = fts.id
-            WHERE {fts_query} AND {" AND ".join(conditions)}
-            ORDER BY rank
+            {fts_clause}
+            WHERE {" AND ".join(conditions)}
+            {order_clause}
             LIMIT ?
         """
 
-        async with self.conn.execute(sql_query, params) as cursor:
+        conn = self._get_conn()
+        async with conn.execute(sql_query, params) as cursor:
             rows = await cursor.fetchall()
 
         results = [self._row_to_dict(row) for row in rows]
@@ -422,8 +447,12 @@ class DatabaseManager:
         # Filter by tags if provided
         if tags:
             results = [
-                r for r in results
-                if any(tag.lower() in [t.lower() for t in r.get("tags", [])] for tag in tags)
+                r
+                for r in results
+                if any(
+                    tag.lower() in [t.lower() for t in r.get("tags", [])]
+                    for tag in tags
+                )
             ]
 
         return results
@@ -769,7 +798,9 @@ class DatabaseManager:
 
         params.append(limit)
 
-        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else "WHERE 1=1"
+        where_clause = (
+            f"WHERE {' AND '.join(conditions)}" if conditions else "WHERE 1=1"
+        )
 
         query = f"""
             SELECT mal.*, m.name as memory_name
@@ -848,9 +879,9 @@ class DatabaseManager:
             "source_agent": row["source_agent"],
             "source_context": row["source_context"],
             "source_tool": row["source_tool"],
-            "parent_memory_id": str(row["parent_memory_id"])
-            if row.get("parent_memory_id")
-            else None,
+            "parent_memory_id": (
+                str(row["parent_memory_id"]) if row.get("parent_memory_id") else None
+            ),
             "associated_memories": associated_memories,
             "metadata": metadata,
             "created_at": str(row["created_at"]) if row["created_at"] else None,
@@ -874,7 +905,7 @@ async def get_db_manager() -> DatabaseManager:
         async with _db_manager_lock:
             # Check for explicit path first
             db_path = os.getenv("AXOM_DB_PATH")
-            
+
             if not db_path:
                 # Use default path: ~/.axom/axom.db
                 home = os.path.expanduser("~")

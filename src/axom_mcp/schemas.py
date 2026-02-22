@@ -352,8 +352,6 @@ class MemorySearchResponse(BaseModel):
 
     # Association models
 
-    error: Optional[str] = None
-
 
 # Access log models
 

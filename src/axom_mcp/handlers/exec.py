@@ -56,10 +56,10 @@ def _validate_path(target: str) -> Path:
 
 async def handle_exec(arguments: Dict[str, Any]) -> str:
     """Handle axom_mcp_exec tool calls.
-    
+
     Args:
         arguments: Tool arguments containing operation and parameters
-        
+
     Returns:
         JSON string with operation result
     """
@@ -67,7 +67,7 @@ async def handle_exec(arguments: Dict[str, Any]) -> str:
     input_data = ExecInput(**arguments)
     operation = input_data.operation
     target = input_data.target
-    
+
     try:
         if operation == "read":
             return await _handle_read(target)
@@ -86,29 +86,31 @@ async def _handle_read(target: str) -> str:
     """Read file contents."""
     try:
         path = _validate_path(target)
-        
+
         if not path.exists():
             return json.dumps({"error": f"File not found: {target}"})
-        
+
         if not path.is_file():
             return json.dumps({"error": f"Not a file: {target}"})
-        
+
         # Check file size
         if path.stat().st_size > MAX_FILE_SIZE:
-            return json.dumps({
-                "error": f"File too large: {target} (max {MAX_FILE_SIZE} bytes)"
-            })
-        
+            return json.dumps(
+                {"error": f"File too large: {target} (max {MAX_FILE_SIZE} bytes)"}
+            )
+
         # Read file content
         content = path.read_text(encoding="utf-8", errors="replace")
-        
-        return json.dumps({
-            "success": True,
-            "operation": "read",
-            "target": str(path),
-            "content": content,
-            "size": len(content),
-        })
+
+        return json.dumps(
+            {
+                "success": True,
+                "operation": "read",
+                "target": str(path),
+                "content": content,
+                "size": len(content),
+            }
+        )
     except ValueError as e:
         return json.dumps({"error": str(e)})
     except Exception as e:
@@ -120,29 +122,31 @@ async def _handle_write(target: str, data: Optional[str]) -> str:
     """Write data to file."""
     # Check if write operations are allowed (AXOM_READ_ONLY defaults to False)
     if _env_flag_enabled("AXOM_READ_ONLY", default=False):
-        return json.dumps({
-            "error": "Write operations disabled. AXOM_READ_ONLY is enabled."
-        })
-    
+        return json.dumps(
+            {"error": "Write operations disabled. AXOM_READ_ONLY is enabled."}
+        )
+
     if data is None:
         return json.dumps({"error": "data is required for write operation"})
-    
+
     try:
         path = _validate_path(target)
-        
+
         # Create parent directories if needed
         path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Write file
         path.write_text(data, encoding="utf-8")
-        
-        return json.dumps({
-            "success": True,
-            "operation": "write",
-            "target": str(path),
-            "size": len(data),
-            "message": f"Successfully wrote {len(data)} bytes to {path}",
-        })
+
+        return json.dumps(
+            {
+                "success": True,
+                "operation": "write",
+                "target": str(path),
+                "size": len(data),
+                "message": f"Successfully wrote {len(data)} bytes to {path}",
+            }
+        )
     except ValueError as e:
         return json.dumps({"error": str(e)})
     except Exception as e:
@@ -154,10 +158,10 @@ async def _handle_shell(command: str) -> str:
     """Execute shell command."""
     # Check if shell operations are allowed (AXOM_READ_ONLY defaults to False)
     if _env_flag_enabled("AXOM_READ_ONLY", default=False):
-        return json.dumps({
-            "error": "Shell operations disabled. AXOM_READ_ONLY is enabled."
-        })
-    
+        return json.dumps(
+            {"error": "Shell operations disabled. AXOM_READ_ONLY is enabled."}
+        )
+
     try:
         # Execute command with timeout
         process = await asyncio.create_subprocess_shell(
@@ -165,31 +169,34 @@ async def _handle_shell(command: str) -> str:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        
+
         try:
             stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=60.0  # 60 second timeout
+                process.communicate(), timeout=60.0  # 60 second timeout
             )
         except asyncio.TimeoutError:
             process.kill()
-            return json.dumps({
-                "error": "Command timed out after 60 seconds",
-                "command": command,
-            })
-        
+            return json.dumps(
+                {
+                    "error": "Command timed out after 60 seconds",
+                    "command": command,
+                }
+            )
+
         # Decode output
         stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
         stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
-        
-        return json.dumps({
-            "success": process.returncode == 0,
-            "operation": "shell",
-            "command": command,
-            "exit_code": process.returncode,
-            "stdout": stdout_str,
-            "stderr": stderr_str,
-        })
+
+        return json.dumps(
+            {
+                "success": process.returncode == 0,
+                "operation": "shell",
+                "command": command,
+                "exit_code": process.returncode,
+                "stdout": stdout_str,
+                "stderr": stderr_str,
+            }
+        )
     except Exception as e:
         logger.error(f"Failed to execute shell command: {e}")
         return json.dumps({"error": str(e)})
@@ -219,11 +226,13 @@ class ChainEngine:
             # Check condition
             if condition:
                 if not self._evaluate_condition(condition, variables):
-                    steps.append({
-                        "tool": tool_name,
-                        "skipped": True,
-                        "reason": "Condition not met",
-                    })
+                    steps.append(
+                        {
+                            "tool": tool_name,
+                            "skipped": True,
+                            "reason": "Condition not met",
+                        }
+                    )
                     continue
 
             # Substitute variables in args
@@ -238,22 +247,26 @@ class ChainEngine:
                 else:
                     result = {"error": f"Unknown tool: {tool_name}"}
 
-                steps.append({
-                    "tool": tool_name,
-                    "args": resolved_args,
-                    "result": result,
-                })
+                steps.append(
+                    {
+                        "tool": tool_name,
+                        "args": resolved_args,
+                        "result": result,
+                    }
+                )
 
                 # Update variables for next step
                 current_result = result
                 variables["_result"] = result
 
             except Exception as e:
-                steps.append({
-                    "tool": tool_name,
-                    "args": resolved_args,
-                    "error": str(e),
-                })
+                steps.append(
+                    {
+                        "tool": tool_name,
+                        "args": resolved_args,
+                        "error": str(e),
+                    }
+                )
                 break
 
         return {
@@ -262,9 +275,7 @@ class ChainEngine:
             "final_result": current_result,
         }
 
-    def _evaluate_condition(
-        self, condition: str, variables: Dict[str, Any]
-    ) -> bool:
+    def _evaluate_condition(self, condition: str, variables: Dict[str, Any]) -> bool:
         """Evaluate a condition expression."""
         try:
             # Simple condition evaluation
@@ -302,9 +313,7 @@ class ChainEngine:
                 return None
         return value
 
-    def _substitute_variables(
-        self, obj: Any, variables: Dict[str, Any]
-    ) -> Any:
+    def _substitute_variables(self, obj: Any, variables: Dict[str, Any]) -> Any:
         """Substitute ${var} patterns in object."""
         if isinstance(obj, str):
             result = obj

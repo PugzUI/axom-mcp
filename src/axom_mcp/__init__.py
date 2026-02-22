@@ -8,7 +8,7 @@ Axom is a Model Context Protocol (MCP) server that provides AI agents with:
 Usage:
     # Run the MCP server
     axom-mcp
-    
+
     # Or programmatically
     from axom_mcp import create_server
     server = create_server()

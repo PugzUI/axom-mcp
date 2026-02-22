@@ -8,10 +8,10 @@ This module contains the handlers for all MCP tools:
 - transform: Transform data between formats
 """
 
-from .memory import handle_memory
-from .exec import handle_exec
 from .analyze import handle_analyze
 from .discover import handle_discover
+from .exec import handle_exec
+from .memory import handle_memory
 from .transform import handle_transform
 
 __all__ = [

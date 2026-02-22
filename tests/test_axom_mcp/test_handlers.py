@@ -5,14 +5,14 @@ import os
 
 import pytest
 
+from axom_mcp.handlers.analyze import handle_analyze
+from axom_mcp.handlers.discover import handle_discover
+from axom_mcp.handlers.exec import handle_exec
 from axom_mcp.handlers.transform import (
-    handle_transform,
     _detect_format,
     _detect_language,
+    handle_transform,
 )
-from axom_mcp.handlers.discover import handle_discover
-from axom_mcp.handlers.analyze import handle_analyze
-from axom_mcp.handlers.exec import handle_exec
 
 
 class TestTransformHandler:

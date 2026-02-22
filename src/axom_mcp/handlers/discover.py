@@ -322,9 +322,11 @@ async def _discover_memory(limit: int) -> str:
                         "name": m.get("name"),
                         "type": m.get("memory_type"),
                         "importance": m.get("importance"),
-                        "created_at": m.get("created_at").isoformat()
-                        if m.get("created_at")
-                        else None,
+                        "created_at": (
+                            m.get("created_at").isoformat()
+                            if m.get("created_at")
+                            else None
+                        ),
                     }
                     for m in recent
                 ],

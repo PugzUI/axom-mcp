@@ -9,26 +9,26 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, cast
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import (
-    Tool,
-    TextContent,
-    Resource,
-    ResourceTemplate,
     Prompt,
     PromptArgument,
     PromptMessage,
+    Resource,
+    ResourceTemplate,
+    TextContent,
+    Tool,
 )
 
-from .database import get_db_manager, close_db_manager
+from .database import close_db_manager, get_db_manager
 from .handlers import (
-    handle_memory,
-    handle_exec,
     handle_analyze,
     handle_discover,
+    handle_exec,
+    handle_memory,
     handle_transform,
 )
 
@@ -165,7 +165,7 @@ Actions:
             },
             "required": ["action"],
         },
-        annotations=TOOL_ANNOTATIONS["memory"],
+        annotations=cast(Any, TOOL_ANNOTATIONS["memory"]),
     ),
     Tool(
         name="axom_mcp_exec",
@@ -217,7 +217,7 @@ Security:
             },
             "required": ["operation", "target"],
         },
-        annotations=TOOL_ANNOTATIONS["exec"],
+        annotations=cast(Any, TOOL_ANNOTATIONS["exec"]),
     ),
     Tool(
         name="axom_mcp_analyze",
@@ -279,7 +279,7 @@ Use chain parameter to automatically act on analysis results.""",
             },
             "required": ["type", "target"],
         },
-        annotations=TOOL_ANNOTATIONS["analyze"],
+        annotations=cast(Any, TOOL_ANNOTATIONS["analyze"]),
     ),
     Tool(
         name="axom_mcp_discover",
@@ -324,7 +324,7 @@ Use chain parameter to act on discovered resources.""",
             },
             "required": ["domain"],
         },
-        annotations=TOOL_ANNOTATIONS["discover"],
+        annotations=cast(Any, TOOL_ANNOTATIONS["discover"]),
     ),
     Tool(
         name="axom_mcp_transform",
@@ -379,7 +379,7 @@ Use chain parameter to continue processing transformed data.""",
             },
             "required": ["input", "output_format"],
         },
-        annotations=TOOL_ANNOTATIONS["transform"],
+        annotations=cast(Any, TOOL_ANNOTATIONS["transform"]),
     ),
 ]
 
@@ -453,7 +453,7 @@ PROMPTS = [
 
 
 @asynccontextmanager
-async def server_lifespan(server: Server):
+async def server_lifespan(server: Server) -> Any:
     """Manage server startup and shutdown."""
     # Startup: Initialize database connection
     try:
@@ -461,7 +461,7 @@ async def server_lifespan(server: Server):
         logger.info("Database connection established")
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
-        logger.error("Axom MCP requires PostgreSQL. Configure .env with database settings.")
+        logger.error("Axom MCP requires SQLite. Ensure database path is writable.")
         raise
 
     yield
@@ -514,7 +514,7 @@ def create_server() -> Server:
 
             return [
                 Resource(
-                    uri=f"memory://{m['name']}",
+                    uri=cast(Any, f"memory://{m['name']}"),
                     name=m["name"],
                     description=f"{m['memory_type']} memory - {m['importance']} importance",
                     mimeType="application/json",
@@ -557,8 +557,10 @@ def create_server() -> Server:
             # Handle tag queries
             if path.startswith("tag/"):
                 tag = path[4:]
-                memories = await db.search_memories(tags=[tag], limit=50)
-                return json.dumps({"tag": tag, "count": len(memories), "memories": memories})
+                memories = await db.search_memories(query=None, tags=[tag], limit=50)
+                return json.dumps(
+                    {"tag": tag, "count": len(memories), "memories": memories}
+                )
 
             # Handle specific memory
             memory = await db.get_memory_by_name(path)
@@ -758,14 +760,16 @@ This pattern will be discoverable by future agents working on similar problems."
     return server
 
 
-async def run_server():
+async def run_server() -> None:
     """Run the MCP server with stdio transport."""
     server = create_server()
     async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+        await server.run(
+            read_stream, write_stream, server.create_initialization_options()
+        )
 
 
-def main():
+def main() -> None:
     """CLI entry point."""
     asyncio.run(run_server())
 

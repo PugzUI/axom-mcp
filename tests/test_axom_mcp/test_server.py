@@ -8,10 +8,7 @@ This module tests the server components including:
 - Tool annotations
 """
 
-
 import pytest
-
-
 
 # ============================================================================
 # Tool Definition Tests
@@ -404,8 +401,9 @@ class TestServerCreation:
 
     def test_create_server_returns_server_instance(self):
         """Test create_server returns a Server instance."""
-        from axom_mcp.server import create_server
         from mcp.server import Server
+
+        from axom_mcp.server import create_server
 
         server = create_server()
 
@@ -575,9 +573,9 @@ class TestServerDriftDetection:
         actions = memory_tool.inputSchema["properties"]["action"]["enum"]
         expected = ["read", "write", "list", "search", "delete"]
 
-        assert set(actions) == set(expected), (
-            f"Memory actions drifted: {actions} != {expected}"
-        )
+        assert set(actions) == set(
+            expected
+        ), f"Memory actions drifted: {actions} != {expected}"
 
     @pytest.mark.drift
     def test_memory_types_unchanged(self):
@@ -588,9 +586,9 @@ class TestServerDriftDetection:
         types = memory_tool.inputSchema["properties"]["memory_type"]["enum"]
         expected = ["long_term", "short_term", "reflex", "dreams"]
 
-        assert set(types) == set(expected), (
-            f"Memory types drifted: {types} != {expected}"
-        )
+        assert set(types) == set(
+            expected
+        ), f"Memory types drifted: {types} != {expected}"
 
     @pytest.mark.drift
     def test_importance_levels_unchanged(self):
@@ -601,9 +599,9 @@ class TestServerDriftDetection:
         levels = memory_tool.inputSchema["properties"]["importance"]["enum"]
         expected = ["critical", "important", "normal", "low"]
 
-        assert set(levels) == set(expected), (
-            f"Importance levels drifted: {levels} != {expected}"
-        )
+        assert set(levels) == set(
+            expected
+        ), f"Importance levels drifted: {levels} != {expected}"
 
     @pytest.mark.drift
     def test_exec_operations_unchanged(self):
@@ -614,9 +612,9 @@ class TestServerDriftDetection:
         ops = exec_tool.inputSchema["properties"]["operation"]["enum"]
         expected = ["read", "write", "shell"]
 
-        assert set(ops) == set(expected), (
-            f"Exec operations drifted: {ops} != {expected}"
-        )
+        assert set(ops) == set(
+            expected
+        ), f"Exec operations drifted: {ops} != {expected}"
 
     @pytest.mark.drift
     def test_analyze_types_unchanged(self):
@@ -627,9 +625,9 @@ class TestServerDriftDetection:
         types = analyze_tool.inputSchema["properties"]["type"]["enum"]
         expected = ["debug", "review", "audit", "refactor", "test"]
 
-        assert set(types) == set(expected), (
-            f"Analyze types drifted: {types} != {expected}"
-        )
+        assert set(types) == set(
+            expected
+        ), f"Analyze types drifted: {types} != {expected}"
 
     @pytest.mark.drift
     def test_analyze_depths_unchanged(self):
@@ -640,9 +638,9 @@ class TestServerDriftDetection:
         depths = analyze_tool.inputSchema["properties"]["depth"]["enum"]
         expected = ["minimal", "low", "medium", "high", "max"]
 
-        assert set(depths) == set(expected), (
-            f"Analyze depths drifted: {depths} != {expected}"
-        )
+        assert set(depths) == set(
+            expected
+        ), f"Analyze depths drifted: {depths} != {expected}"
 
     @pytest.mark.drift
     def test_discover_domains_unchanged(self):
@@ -653,9 +651,9 @@ class TestServerDriftDetection:
         domains = discover_tool.inputSchema["properties"]["domain"]["enum"]
         expected = ["files", "tools", "memory", "capabilities", "all"]
 
-        assert set(domains) == set(expected), (
-            f"Discover domains drifted: {domains} != {expected}"
-        )
+        assert set(domains) == set(
+            expected
+        ), f"Discover domains drifted: {domains} != {expected}"
 
     @pytest.mark.drift
     def test_transform_formats_unchanged(self):
@@ -666,9 +664,9 @@ class TestServerDriftDetection:
         formats = transform_tool.inputSchema["properties"]["output_format"]["enum"]
         expected = ["json", "yaml", "csv", "markdown", "code"]
 
-        assert set(formats) == set(expected), (
-            f"Transform formats drifted: {formats} != {expected}"
-        )
+        assert set(formats) == set(
+            expected
+        ), f"Transform formats drifted: {formats} != {expected}"
 
     @pytest.mark.drift
     def test_tool_annotations_keys_unchanged(self):
@@ -678,9 +676,9 @@ class TestServerDriftDetection:
         expected_keys = {"memory", "exec", "analyze", "discover", "transform"}
         actual_keys = set(TOOL_ANNOTATIONS.keys())
 
-        assert actual_keys == expected_keys, (
-            f"Tool annotation keys drifted: {actual_keys} != {expected_keys}"
-        )
+        assert (
+            actual_keys == expected_keys
+        ), f"Tool annotation keys drifted: {actual_keys} != {expected_keys}"
 
     @pytest.mark.drift
     def test_annotation_properties_unchanged(self):
@@ -696,6 +694,6 @@ class TestServerDriftDetection:
 
         for tool_name, annotations in TOOL_ANNOTATIONS.items():
             actual_props = set(annotations.keys())
-            assert actual_props == expected_props, (
-                f"{tool_name} annotation props drifted: {actual_props} != {expected_props}"
-            )
+            assert (
+                actual_props == expected_props
+            ), f"{tool_name} annotation props drifted: {actual_props} != {expected_props}"

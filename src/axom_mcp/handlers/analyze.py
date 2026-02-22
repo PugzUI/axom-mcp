@@ -147,9 +147,9 @@ async def _analyze_debug(code: str, focus: Optional[str], depth: str) -> Dict[st
                     "line": line_num,
                     "type": "debug",
                     "message": message,
-                    "severity": "warning"
-                    if "TODO" in message or "FIXME" in message
-                    else "info",
+                    "severity": (
+                        "warning" if "TODO" in message or "FIXME" in message else "info"
+                    ),
                 }
             )
 
@@ -159,9 +159,9 @@ async def _analyze_debug(code: str, focus: Optional[str], depth: str) -> Dict[st
         "issues_found": len(issues) > 0,
         "issues": issues,
         "summary": f"Found {len(issues)} potential debug issues",
-        "recommendations": [i["message"] for i in issues[:5]]
-        if issues
-        else ["No debug issues found"],
+        "recommendations": (
+            [i["message"] for i in issues[:5]] if issues else ["No debug issues found"]
+        ),
     }
 
 
@@ -225,9 +225,11 @@ async def _analyze_review(
         "issues_found": len(issues) > 0,
         "issues": issues,
         "summary": f"Found {len(issues)} code quality issues",
-        "recommendations": list(set(i["message"] for i in issues[:5]))
-        if issues
-        else ["Code looks good!"],
+        "recommendations": (
+            list(set(i["message"] for i in issues[:5]))
+            if issues
+            else ["Code looks good!"]
+        ),
     }
 
 
@@ -297,9 +299,11 @@ async def _analyze_audit(code: str, focus: Optional[str], depth: str) -> Dict[st
         "issues_found": len(issues) > 0,
         "issues": issues,
         "summary": f"Found {len(issues)} security issues ({sum(1 for i in issues if i['severity'] == 'critical')} critical)",
-        "recommendations": [i["message"] for i in issues[:5]]
-        if issues
-        else ["No security issues found"],
+        "recommendations": (
+            [i["message"] for i in issues[:5]]
+            if issues
+            else ["No security issues found"]
+        ),
     }
 
 
@@ -367,9 +371,11 @@ async def _analyze_refactor(
         "issues_found": len(suggestions) > 0,
         "issues": suggestions,
         "summary": f"Found {len(suggestions)} refactoring opportunities",
-        "recommendations": [s["message"] for s in suggestions[:5]]
-        if suggestions
-        else ["Code structure looks good!"],
+        "recommendations": (
+            [s["message"] for s in suggestions[:5]]
+            if suggestions
+            else ["Code structure looks good!"]
+        ),
     }
 
 
@@ -420,9 +426,11 @@ async def _analyze_test(code: str, focus: Optional[str], depth: str) -> Dict[str
         "issues_found": test_indicators == 0,
         "issues": issues,
         "summary": f"Found {test_indicators} test indicators",
-        "recommendations": ["Add more test coverage"]
-        if test_indicators < 3
-        else ["Good test coverage!"],
+        "recommendations": (
+            ["Add more test coverage"]
+            if test_indicators < 3
+            else ["Good test coverage!"]
+        ),
     }
 
 
