@@ -1,0 +1,8 @@
+# Axom MCP Server - Python Dependencies
+
+# Database driver for SQLite (migrated from PostgreSQL)
+aiosqlite>=0.19.0
+
+# Optional: For development and testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0

@@ -1,0 +1,374 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "description": "Agent configuration registry for Axom MCP. Add new agents via PR.",
+    "contribute_url": "https://github.com/kilo-axom/axom/pulls"
+  },
+  "agents": {
+    "cursor": {
+      "name": "Cursor",
+      "variants": {
+        "ide": {
+          "detection": {
+            "paths": ["~/.cursor"],
+            "executables": ["cursor", "cursor-server"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.cursor/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.cursor/rules", "format": "flat", "ext": ".mdc"},
+            "skills": {"path": "~/.cursor/skills", "format": "dir"}
+          }
+        },
+        "cli": {
+          "detection": {
+            "paths": ["~/.cursor/cli-config.json"],
+            "executables": []
+          }
+        }
+      }
+    },
+    "kiro": {
+      "name": "Kiro",
+      "variants": {
+        "ide": {
+          "detection": {
+            "paths": ["~/.kiro"],
+            "executables": ["kiro-cli", "kiro"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.kiro/settings/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.kiro/AGENTS.md", "format": "marker"},
+            "skills": {"path": "~/.kiro/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "zed": {
+      "name": "Zed",
+      "variants": {
+        "ide": {
+          "detection": {
+            "paths": ["~/.config/zed"],
+            "executables": ["zed"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.config/zed/settings.json", "format": "jsonc", "key": "context_servers", "inject": true},
+            "rules": {"path": "~/.config/zed/AGENTS.md", "format": "marker"},
+            "skills": {"path": "~/.config/zed/rules", "format": "dir"}
+          }
+        }
+      }
+    },
+    "windsurf": {
+      "name": "Windsurf",
+      "variants": {
+        "ide": {
+          "detection": {
+            "paths": ["~/.codeium/windsurf"],
+            "executables": ["windsurf"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.codeium/windsurf/mcp_config.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.windsurf/global_rules.md", "format": "marker"},
+            "skills": {"path": "~/.windsurf/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "trae": {
+      "name": "Trae",
+      "variants": {
+        "ide": {
+          "detection": {
+            "paths": ["~/.trae"],
+            "executables": ["Trae"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.trae/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.trae/user_rules.md", "format": "marker"},
+            "skills": {"path": "~/.trae/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "codex": {
+      "name": "Codex",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.codex"],
+            "executables": ["codex"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.codex/config.toml", "format": "toml", "key": "mcp_servers"},
+            "rules": {"path": "~/.codex/AGENTS.md", "format": "marker"},
+            "skills": {"path": "~/.codex/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "gemini": {
+      "name": "Gemini CLI",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.gemini"],
+            "executables": ["gemini"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.gemini/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.gemini/GEMINI.md", "format": "marker"},
+            "skills": {"path": "~/.gemini/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "qwen": {
+      "name": "Qwen Code",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.qwen"],
+            "executables": ["qwen"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.qwen/settings.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.qwen/QWEN.md", "format": "marker"},
+            "skills": {"path": "~/.qwen/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "opencode": {
+      "name": "OpenCode",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.config/opencode"],
+            "executables": ["opencode"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.config/opencode/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.config/opencode/AGENTS.md", "format": "marker"},
+            "skills": {"path": "~/.config/opencode/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "junie": {
+      "name": "Junie",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.config/junie"],
+            "executables": ["junie"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.config/junie/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.config/junie/AGENTS.md", "format": "marker"},
+            "skills": {"path": "~/.config/junie/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "antigravity": {
+      "name": "Antigravity",
+      "variants": {
+        "ide": {
+          "detection": {
+            "paths": ["~/.antigravity"],
+            "executables": ["antigravity", "antigravity-server"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.antigravity/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.antigravity/rules", "format": "flat", "ext": ".mdc"},
+            "skills": {"path": "~/.antigravity/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "claude": {
+      "name": "Claude Code",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.claude", "~/.config/claude"],
+            "executables": ["claude"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.claude/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.claude/CLAUDE.md", "format": "marker"},
+            "skills": {"path": "~/.claude/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "vibe": {
+      "name": "Vibe",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.config/vibe"],
+            "executables": ["vibe"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.config/vibe/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.config/vibe/AGENTS.md", "format": "marker"},
+            "skills": {"path": "~/.config/vibe/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "crush": {
+      "name": "Crush CLI",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.config/crush"],
+            "executables": ["crush"]
+          },
+          "configs": {
+            "skills": {"path": "~/.config/crush/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "kilo": {
+      "name": "Kilo Code",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.kilocode"],
+            "executables": ["kilo"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.kilocode/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.kilocode/rules", "format": "dir"},
+            "skills": {"path": "~/.kilocode/skills", "format": "dir"}
+          }
+        },
+        "cursor_extension": {
+          "extension_id": "kilocode.kilo-code",
+          "detection": {
+            "paths": ["~/.config/Cursor/User/globalStorage/kilocode.kilo-code"],
+            "executables": []
+          },
+          "configs": {
+            "mcp": {"path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/settings/mcp_settings.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/rules", "format": "dir"},
+            "skills": {"path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/skills", "format": "dir"}
+          }
+        }
+      }
+    },
+    "cline": {
+      "name": "Cline",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.cline/data"],
+            "executables": []
+          },
+          "configs": {
+            "mcp": {"path": "~/.cline/data/mcp.json", "format": "json", "key": "mcpServers"}
+          }
+        },
+        "extension": {
+          "extension_id": "saoudrizwan.claude-dev",
+          "detection": {
+            "paths": ["~/.config/Cursor/User/globalStorage/saoudrizwan.claude-dev"],
+            "executables": []
+          }
+        }
+      }
+    },
+    "roo": {
+      "name": "Roo Code",
+      "variants": {
+        "cli": {
+          "detection": {
+            "paths": ["~/.roo"],
+            "executables": ["roo"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.roo/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.roo/ROO.md", "format": "marker"},
+            "skills": {"path": "~/.roo/skills", "format": "dir"}
+          }
+        },
+        "extension": {
+          "extension_id": "rooveterinaryinc.roo-cline",
+          "detection": {
+            "paths": ["~/.config/Cursor/User/globalStorage/rooveterinaryinc.roo-cline"],
+            "executables": []
+          }
+        }
+      }
+    },
+    "continue": {
+      "name": "Continue",
+      "variants": {
+        "ide": {
+          "extension_id": "continue.continue",
+          "detection": {
+            "paths": ["~/.continue"],
+            "executables": []
+          },
+          "configs": {
+            "mcp": {"path": "~/.continue/config.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.continue/AGENTS.md", "format": "marker"}
+          }
+        }
+      }
+    },
+    "augment": {
+      "name": "Augment Code",
+      "variants": {
+        "ide": {
+          "extension_id": "augment.augment-vscode",
+          "detection": {
+            "paths": ["~/.augment"],
+            "executables": ["augment"]
+          },
+          "configs": {
+            "mcp": {"path": "~/.augment/mcp.json", "format": "json", "key": "mcpServers"},
+            "rules": {"path": "~/.augment/AGENTS.md", "format": "marker"}
+          }
+        }
+      }
+    },
+    "amazonq": {
+      "name": "Amazon Q",
+      "variants": {
+        "cli": {
+          "extension_id": "amazonwebservices.amazon-q-vscode",
+          "detection": {
+            "paths": ["~/.aws/amazonq"],
+            "executables": []
+          },
+          "configs": {
+            "mcp": {"path": "~/.aws/amazonq/mcp.json", "format": "json", "key": "mcpServers"}
+          }
+        }
+      }
+    }
+  },
+  "scan_patterns": {
+    "description": "Patterns to use when --scan flag is enabled to find unregistered agents",
+    "mcp_configs": [
+      "**/mcp.json",
+      "**/mcp_config.json",
+      "**/settings.json",
+      "**/mcp_settings.json"
+    ],
+    "extension_dirs": [
+      "~/.cursor/extensions/*/package.json",
+      "~/.vscode/extensions/*/package.json",
+      "~/.config/Code/User/extensions/*/package.json"
+    ],
+    "agent_indicators": {
+      "executables": ["kilo", "cline", "cursor", "zed", "codex", "claude", "qwen", "gemini", "trae", "windsurf", "roo", "opencode", "junie", "vibe", "kiro", "augment"],
+      "config_files": ["cli-config.json", "settings.json", "mcp.json", "config.toml"]
+    }
+  }
+}

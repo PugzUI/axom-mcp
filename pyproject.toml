@@ -1,0 +1,129 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "axom-mcp"
+version = "2.0.0"
+description = "MCP server providing AI agents with persistent memory, tool abstraction, and chain-reaction capabilities"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "CNS Team"}
+]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "ai-memory",
+    "persistent-memory",
+    "tool-abstraction",
+    "chain-reactions",
+    "ai-agents",
+    "axon",
+    "neural",
+    "memory-pathways"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = [
+    "mcp>=1.2.0",
+    "pydantic>=2.0.0",
+    "aiosqlite>=0.19.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0"
+]
+yaml = [
+    "pyyaml>=6.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/PugzUI/axom-mcp"
+Repository = "https://github.com/PugzUI/axom-mcp.git"
+Issues = "https://github.com/PugzUI/axom-mcp/issues"
+Documentation = "https://github.com/PugzUI/axom-mcp#readme"
+
+[project.scripts]
+axom = "axom_mcp.server:main"
+axom-mcp = "axom_mcp.server:main"
+
+[project.entry-points."mcp.servers"]
+axom = "axom_mcp.server:create_server"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/axom_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/axom_mcp",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests (fast, no external dependencies)",
+    "integration: Integration tests (may require database)",
+    "slow: Slow tests (skip with -m 'not slow')",
+    "database: Tests requiring database connection",
+    "filesystem: Tests requiring filesystem access",
+    "drift: Drift detection tests for workflow validation",
+]
+addopts = [
+    "-v",
+    "--tb=short",
+    "-ra",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src/axom_mcp"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = true
