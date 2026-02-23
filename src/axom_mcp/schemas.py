@@ -32,16 +32,14 @@ class ImportanceLevel(str, Enum):
     """Memory importance levels for prioritization.
 
     Used to rank memories for retrieval and cleanup:
-    - critical: Must never be deleted, essential knowledge
-    - important: High value, should be preserved
-    - normal: Standard memories
     - low: Useful but not essential
+    - high: High value, should be preserved
+    - critical: Must never be deleted, essential knowledge
     """
 
-    CRITICAL = "critical"
-    IMPORTANT = "important"
-    NORMAL = "normal"
     LOW = "low"
+    HIGH = "high"
+    CRITICAL = "critical"
 
 
 class MemoryWriteInput(BaseModel):
@@ -66,7 +64,7 @@ class MemoryWriteInput(BaseModel):
         default=MemoryType.LONG_TERM, description="Type of memory storage"
     )
     importance: ImportanceLevel = Field(
-        default=ImportanceLevel.NORMAL,
+        default=ImportanceLevel.HIGH,
         description="Importance level for prioritization",
     )
     tags: Optional[List[str]] = Field(

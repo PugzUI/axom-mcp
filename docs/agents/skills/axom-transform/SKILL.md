@@ -88,7 +88,7 @@ Use it aggressively in pipelines.
         "action": "write",
         "name": "review_report_20260222",
         "content": "${_result}",
-        "importance": "normal"
+        "importance": "low"
       }
     }
   ]

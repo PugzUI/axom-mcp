@@ -62,7 +62,7 @@ Each step receives the previous step's output as `_result`.
         "action": "write",
         "name": "review_main_20260222",
         "content": "${_result}",
-        "importance": "normal"
+        "importance": "low"
       }
     }
   ]

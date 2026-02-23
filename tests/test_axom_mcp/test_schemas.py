@@ -32,8 +32,7 @@ class TestMemoryEnums:
     def test_importance_level_values(self):
         """Test ImportanceLevel enum values."""
         assert ImportanceLevel.CRITICAL == "critical"
-        assert ImportanceLevel.IMPORTANT == "important"
-        assert ImportanceLevel.NORMAL == "normal"
+        assert ImportanceLevel.HIGH == "high"
         assert ImportanceLevel.LOW == "low"
 
 
@@ -47,7 +46,7 @@ class TestMemoryWriteInput:
             "name": "pattern_test_20260214",
             "content": "Test content",
             "memory_type": "long_term",
-            "importance": "important",
+            "importance": "high",
             "tags": ["test", "example"],
         }
         result = MemoryWriteInput(**data)
@@ -55,7 +54,7 @@ class TestMemoryWriteInput:
         assert result.name == "pattern_test_20260214"
         assert result.content == "Test content"
         assert result.memory_type == MemoryType.LONG_TERM
-        assert result.importance == ImportanceLevel.IMPORTANT
+        assert result.importance == ImportanceLevel.HIGH
         assert result.tags == ["test", "example"]
 
     def test_minimal_write_input(self):
@@ -67,7 +66,7 @@ class TestMemoryWriteInput:
         result = MemoryWriteInput(**data)
         assert result.action == "write"
         assert result.memory_type == MemoryType.LONG_TERM
-        assert result.importance == ImportanceLevel.NORMAL
+        assert result.importance == ImportanceLevel.HIGH
         assert result.tags is None
 
     def test_extra_fields_forbidden(self):

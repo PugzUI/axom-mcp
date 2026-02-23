@@ -145,8 +145,8 @@ def _parse_input(input_str: str, input_format: str) -> Any:
 
 def _parse_simple_yaml(yaml_str: str) -> Any:
     """Simple YAML parser for basic structures."""
-    result = {}
-    current_key = None
+    result: Dict[str, Any] = {}
+    current_key: Optional[str] = None
 
     for line in yaml_str.split("\n"):
         stripped = line.strip()
@@ -157,24 +157,25 @@ def _parse_simple_yaml(yaml_str: str) -> Any:
         if ":" in stripped:
             parts = stripped.split(":", 1)
             key = parts[0].strip()
-            value = parts[1].strip() if len(parts) > 1 else None
+            val_str = parts[1].strip() if len(parts) > 1 else None
+            parsed_value: Any = val_str
 
-            if value:
+            if val_str:
                 # Try to parse value
-                if value.lower() == "true":
-                    value = True
-                elif value.lower() == "false":
-                    value = False
-                elif value.isdigit():
-                    value = int(value)
-                elif value.replace(".", "").isdigit():
-                    value = float(value)
-                elif value.startswith('"') and value.endswith('"'):
-                    value = value[1:-1]
-                elif value.startswith("'") and value.endswith("'"):
-                    value = value[1:-1]
+                if val_str.lower() == "true":
+                    parsed_value = True
+                elif val_str.lower() == "false":
+                    parsed_value = False
+                elif val_str.isdigit():
+                    parsed_value = int(val_str)
+                elif val_str.replace(".", "").isdigit():
+                    parsed_value = float(val_str)
+                elif val_str.startswith('"') and val_str.endswith('"'):
+                    parsed_value = val_str[1:-1]
+                elif val_str.startswith("'") and val_str.endswith("'"):
+                    parsed_value = val_str[1:-1]
 
-                result[key] = value
+                result[key] = parsed_value
             else:
                 current_key = key
                 result[current_key] = {}
@@ -192,7 +193,7 @@ def _parse_simple_yaml(yaml_str: str) -> Any:
 
 def _parse_markdown(md_str: str) -> Dict[str, Any]:
     """Parse markdown to structured data."""
-    result = {
+    result: Dict[str, Any] = {
         "sections": [],
         "headers": [],
         "lists": [],
@@ -200,9 +201,9 @@ def _parse_markdown(md_str: str) -> Dict[str, Any]:
         "links": [],
     }
 
-    current_section = {"title": None, "content": [], "level": 0}
+    current_section: Dict[str, Any] = {"title": None, "content": [], "level": 0}
     in_code_block = False
-    code_content = []
+    code_content: List[str] = []
     code_language = None
 
     for line in md_str.split("\n"):
@@ -258,7 +259,8 @@ def _parse_markdown(md_str: str) -> Dict[str, Any]:
             )
 
         # Regular content
-        current_section["content"].append(line)
+        if not in_code_block and line.strip():
+            current_section["content"].append(line)
 
     if current_section["content"]:
         result["sections"].append(current_section)
@@ -343,7 +345,7 @@ def _apply_rule(data: Any, rule: Dict[str, Any]) -> Any:
         agg_func = rule.get("function", "count")
 
         if isinstance(data, list) and group_by:
-            groups = {}
+            groups: Dict[Any, List[Dict[str, Any]]] = {}
             for item in data:
                 key = item.get(group_by)
                 if key not in groups:

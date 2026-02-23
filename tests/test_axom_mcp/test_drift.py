@@ -40,7 +40,7 @@ class TestSchemaDrift:
         """Ensure ImportanceLevel enum values haven't changed."""
         from axom_mcp.schemas import ImportanceLevel
 
-        expected = {"critical", "important", "normal", "low"}
+        expected = {"low", "high", "critical"}
         actual = {e.value for e in ImportanceLevel}
 
         assert actual == expected, (
@@ -356,7 +356,6 @@ class TestDatabaseSchemaDrift:
             "name",
             "memory_type",
             "importance",
-            "status",
             "content",
             "summary",
             "tags",

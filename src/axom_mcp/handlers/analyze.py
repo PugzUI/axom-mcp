@@ -327,7 +327,7 @@ async def _analyze_refactor(
             r"(\bwhile\s+[^:]+\s*:\s*\n\s*)(while\s+)",
             "Nested while loops - consider extracting method",
         ),
-        (r"^\s{8,}", "Deep indentation - consider extracting method", "indentation"),
+        (r"^\s{8,}", "Deep indentation - consider extracting method"),
     ]
 
     for pattern, message in refactor_patterns:
@@ -345,14 +345,13 @@ async def _analyze_refactor(
 
     # Check for duplicate code (simple heuristic)
     lines = code.split("\n")
-    line_counts = {}
+    line_counts: Dict[str, List[int]] = {}
     for i, line in enumerate(lines):
         stripped = line.strip()
         if stripped and len(stripped) > 10:
-            if stripped in line_counts:
-                line_counts[stripped].append(i + 1)
-            else:
-                line_counts[stripped] = [i + 1]
+            if stripped not in line_counts:
+                line_counts[stripped] = []
+            line_counts[stripped].append(i + 1)
 
     for line_text, occurrences in line_counts.items():
         if len(occurrences) > 2:

@@ -20,6 +20,15 @@ from ..schemas import ImportanceLevel, MemoryInput, MemoryType
 logger = logging.getLogger(__name__)
 
 
+def _to_iso_or_str(value: Any) -> Any:
+    """Return ISO string for datetimes, passthrough for pre-serialized values."""
+    if value is None:
+        return None
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
 async def handle_memory(arguments: Dict[str, Any]) -> str:
     """Handle axom_mcp_memory tool calls.
 
@@ -59,7 +68,7 @@ async def _handle_write(input_data: MemoryInput, db) -> str:
         return json.dumps({"error": "content is required for write action"})
 
     memory_type = input_data.memory_type or MemoryType.LONG_TERM
-    importance = input_data.importance or ImportanceLevel.NORMAL
+    importance = input_data.importance or ImportanceLevel.HIGH
 
     try:
         memory_id = await db.create_memory(
@@ -115,11 +124,7 @@ async def _handle_read(input_data: MemoryInput, db) -> str:
                     "memory_type": assoc["memory_type"],
                     "importance": assoc["importance"],
                     "tags": assoc.get("tags", []),
-                    "created_at": (
-                        assoc["created_at"].isoformat()
-                        if assoc.get("created_at")
-                        else None
-                    ),
+                    "created_at": (_to_iso_or_str(assoc.get("created_at"))),
                 }
             )
 
@@ -135,16 +140,8 @@ async def _handle_read(input_data: MemoryInput, db) -> str:
                     "tags": memory.get("tags", []),
                     "source_agent": memory.get("source_agent"),
                     "parent_memory_id": memory.get("parent_memory_id"),
-                    "created_at": (
-                        memory["created_at"].isoformat()
-                        if memory.get("created_at")
-                        else None
-                    ),
-                    "updated_at": (
-                        memory["updated_at"].isoformat()
-                        if memory.get("updated_at")
-                        else None
-                    ),
+                    "created_at": (_to_iso_or_str(memory.get("created_at"))),
+                    "updated_at": (_to_iso_or_str(memory.get("updated_at"))),
                     "associated_memories": formatted_associations,
                 },
             }
@@ -191,9 +188,7 @@ async def _handle_list(input_data: MemoryInput, db) -> str:
                         "memory_type": m["memory_type"],
                         "importance": m["importance"],
                         "tags": m.get("tags", []),
-                        "created_at": (
-                            m["created_at"].isoformat() if m.get("created_at") else None
-                        ),
+                        "created_at": (_to_iso_or_str(m.get("created_at"))),
                     }
                     for m in memories
                 ],
@@ -268,7 +263,7 @@ async def _handle_delete(input_data: MemoryInput, db) -> str:
         return json.dumps({"error": "name is required for delete action"})
 
     try:
-        deleted = await db.delete_memory(input_data.name)
+        deleted = await db.delete_memory_by_name(input_data.name)
         if deleted:
             return json.dumps(
                 {

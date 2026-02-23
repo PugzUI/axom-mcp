@@ -41,19 +41,9 @@ class MemoryType(str, Enum):
 class ImportanceLevel(str, Enum):
     """Memory importance levels for prioritization."""
 
-    CRITICAL = "critical"
-    IMPORTANT = "important"
-    NORMAL = "normal"
     LOW = "low"
-
-
-class MemoryStatus(str, Enum):
-    """Memory status for lifecycle management."""
-
-    ACTIVE = "active"
-    ARCHIVED = "archived"
-    FORGOTTEN = "forgotten"
-    DELETED = "deleted"
+    HIGH = "high"
+    CRITICAL = "critical"
 
 
 @dataclass
@@ -63,8 +53,7 @@ class Memory:
     id: str
     name: Optional[str] = None
     memory_type: MemoryType = MemoryType.SHORT_TERM
-    importance: ImportanceLevel = ImportanceLevel.NORMAL
-    status: MemoryStatus = MemoryStatus.ACTIVE
+    importance: ImportanceLevel = ImportanceLevel.HIGH
     content: str = ""
     summary: Optional[str] = None
     tags: List[str] = field(default_factory=list)
@@ -97,11 +86,6 @@ class Memory:
                 self.importance.value
                 if isinstance(self.importance, ImportanceLevel)
                 else self.importance
-            ),
-            "status": (
-                self.status.value
-                if isinstance(self.status, MemoryStatus)
-                else self.status
             ),
             "content": self.content,
             "summary": self.summary,
@@ -182,10 +166,9 @@ class DatabaseManager:
     async def ensure_schema(self) -> None:
         """Ensure the Axom database schema exists."""
 
-        # Read schema from axom_db_sqlite.sql file
+        # Read schema from schema.sql in the same directory
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(current_dir))
-        schema_path = os.path.join(project_root, "axom_db_sqlite.sql")
+        schema_path = os.path.join(current_dir, "schema.sql")
 
         try:
             with open(schema_path, "r", encoding="utf-8") as f:
@@ -198,14 +181,25 @@ class DatabaseManager:
         # but aiosqlite provides an async version.
         conn = self._get_conn()
         try:
+            # Recreate triggers each startup so behavior updates apply to existing DBs.
+            await conn.executescript("""
+                DROP TRIGGER IF EXISTS memories_ai;
+                DROP TRIGGER IF EXISTS memories_ad;
+                DROP TRIGGER IF EXISTS memories_au;
+                DROP TRIGGER IF EXISTS log_access_update_memory;
+                """)
             await conn.executescript(schema_sql)
+            # Normalize deprecated importance level for existing databases.
+            await conn.execute(
+                "UPDATE memories SET importance = 'high' WHERE importance = 'medium'"
+            )
         except Exception as e:
             # Ignore some expected errors (e.g., table already exists)
             if "already exists" not in str(e).lower():
                 logger.warning(f"Schema statement warning: {e}")
 
         await conn.commit()
-        logger.info("Database schema ensured from axom_db_sqlite.sql")
+        logger.info("Database schema ensured from schema.sql")
 
     async def close(self) -> None:
         """Close database connection."""
@@ -218,7 +212,7 @@ class DatabaseManager:
         name: str,
         content: str,
         memory_type: str = "long_term",
-        importance: str = "normal",
+        importance: str = "high",
         tags: Optional[List[str]] = None,
         source_agent: Optional[str] = None,
         source_context: Optional[str] = None,
@@ -233,7 +227,7 @@ class DatabaseManager:
             name: Unique identifier for the memory
             content: Memory content
             memory_type: Type of memory (long_term, short_term)
-            importance: Importance level (critical, important, normal, low)
+            importance: Importance level (low, high, critical)
             tags: List of tags for categorization
             source_agent: Identifier of the agent creating this memory
             source_context: Context information
@@ -313,7 +307,7 @@ class DatabaseManager:
         """Retrieve a memory by ID."""
         conn = self._get_conn()
         async with conn.execute(
-            "SELECT * FROM memories WHERE id = ? AND status = 'active'",
+            "SELECT * FROM memories WHERE id = ?",
             (memory_id,),
         ) as cursor:
             row = await cursor.fetchone()
@@ -327,7 +321,7 @@ class DatabaseManager:
         """Retrieve a memory by name."""
         conn = self._get_conn()
         async with conn.execute(
-            "SELECT * FROM memories WHERE name = ? AND status = 'active'",
+            "SELECT * FROM memories WHERE name = ?",
             (name,),
         ) as cursor:
             row = await cursor.fetchone()
@@ -347,7 +341,7 @@ class DatabaseManager:
     ) -> List[Dict[str, Any]]:
         """List memories with optional filtering."""
 
-        conditions = ["status = 'active'"]
+        conditions = []
         params = []
 
         if memory_type:
@@ -369,9 +363,10 @@ class DatabaseManager:
 
         params.append(limit)
 
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         query = f"""
             SELECT * FROM memories
-            WHERE {" AND ".join(conditions)}
+            {where_clause}
             ORDER BY created_at DESC, id DESC
             LIMIT ?
         """
@@ -405,15 +400,20 @@ class DatabaseManager:
         """Search memories by content using FTS5."""
 
         # Use FTS5 for full-text search
-        conditions = ["m.status = 'active'"]
+        conditions = []
         params = []
 
         # Join with FTS table
         fts_clause = ""
         if query:
+            fts_query = query
+            # Treat punctuation-heavy input as plain text phrase to avoid FTS parse errors.
+            if any(ch in query for ch in ['"', "'", "-", ":", "(", ")", "/", "."]):
+                fts_query = f'"{query.replace(chr(34), chr(34) * 2)}"'
+
             fts_clause = "JOIN memories_fts fts ON m.id = fts.id"
             conditions.append("memories_fts MATCH ?")
-            params.append(query)
+            params.append(fts_query)
 
         if memory_type:
             conditions.append("m.memory_type = ?")
@@ -429,11 +429,12 @@ class DatabaseManager:
         rank_col = ", bm25(memories_fts) as rank" if query else ""
         order_clause = "ORDER BY rank" if query else "ORDER BY m.updated_at DESC"
 
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         sql_query = f"""
             SELECT m.*{rank_col}
             FROM memories m
             {fts_clause}
-            WHERE {" AND ".join(conditions)}
+            {where_clause}
             {order_clause}
             LIMIT ?
         """
@@ -498,89 +499,156 @@ class DatabaseManager:
         query = f"""
             UPDATE memories
             SET {", ".join(updates)}
-            WHERE id = ? AND status = 'active'
+            WHERE id = ?
         """
 
-        await self.conn.execute(query, params)
-        await self.conn.commit()
+        conn = self._get_conn()
+        await conn.execute(query, params)
+        await conn.commit()
 
         return await self.get_memory(memory_id)
 
     async def delete_memory(self, memory_id: str) -> bool:
-        """Delete a memory by ID (soft delete by setting status)."""
-        cursor = await self.conn.execute(
-            "UPDATE memories SET status = 'deleted' WHERE id = ? AND status = 'active'",
+        """Delete a memory by ID (hard delete)."""
+        conn = self._get_conn()
+        async with conn.execute(
+            "SELECT id FROM memories WHERE id = ?",
+            (memory_id,),
+        ) as cursor:
+            rows = await cursor.fetchall()
+        deleted_ids = [str(row["id"]) for row in rows]
+
+        conn = self._get_conn()
+        cursor = await conn.execute(
+            "DELETE FROM memories WHERE id = ?",
             (memory_id,),
         )
-        await self.conn.commit()
+        if deleted_ids:
+            await self._prune_association_references(deleted_ids)
+        conn = self._get_conn()
+        await conn.commit()
 
         return cursor.rowcount > 0
 
     async def delete_memory_by_name(self, name: str) -> bool:
-        """Delete a memory by name (soft delete by setting status)."""
-        cursor = await self.conn.execute(
-            "UPDATE memories SET status = 'deleted' WHERE name = ? AND status = 'active'",
+        """Delete a memory by name (hard delete)."""
+        conn = self._get_conn()
+        async with conn.execute(
+            "SELECT id FROM memories WHERE name = ?",
+            (name,),
+        ) as cursor:
+            rows = await cursor.fetchall()
+        deleted_ids = [str(row["id"]) for row in rows]
+
+        conn = self._get_conn()
+        cursor = await conn.execute(
+            "DELETE FROM memories WHERE name = ?",
             (name,),
         )
-        await self.conn.commit()
+        if deleted_ids:
+            await self._prune_association_references(deleted_ids)
+        conn = self._get_conn()
+        await conn.commit()
 
         return cursor.rowcount > 0
 
     async def cleanup_expired_memories(self) -> Dict[str, Any]:
-        """Run the database cleanup process to archive expired memories.
+        """Run the database cleanup process.
 
         This method:
-        - Archives memories that have passed their expires_at time
-        - Permanently deletes memories archived for more than 30 days
+        - Permanently deletes memories that have passed their expires_at time
         - Removes access logs older than 90 days
 
         Returns:
             Dictionary with cleanup results
         """
         now = datetime.now(timezone.utc).isoformat()
-        thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
         ninety_days_ago = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
 
-        # Get counts before cleanup
-        async with self.conn.execute(
-            "SELECT COUNT(*) FROM memories WHERE expires_at < ? AND status = 'active'",
+        # Resolve expired IDs first so we can prune references after deletion.
+        conn = self._get_conn()
+        async with conn.execute(
+            "SELECT id FROM memories WHERE expires_at IS NOT NULL AND expires_at < ?",
             (now,),
         ) as cursor:
-            expired_before = (await cursor.fetchone())[0]
+            expired_rows = await cursor.fetchall()
+        expired_ids = [str(row["id"]) for row in expired_rows]
 
-        async with self.conn.execute(
-            "SELECT COUNT(*) FROM memories WHERE status = 'archived' AND updated_at < ?",
-            (thirty_days_ago,),
-        ) as cursor:
-            await cursor.fetchone()
-
-        # Archive expired memories
-        await self.conn.execute(
-            "UPDATE memories SET status = 'archived' WHERE expires_at < ? AND status = 'active'",
+        conn = self._get_conn()
+        cursor = await conn.execute(
+            "DELETE FROM memories WHERE expires_at IS NOT NULL AND expires_at < ?",
             (now,),
         )
-
-        # Permanently delete old archived memories
-        cursor = await self.conn.execute(
-            "DELETE FROM memories WHERE status = 'archived' AND updated_at < ?",
-            (thirty_days_ago,),
-        )
-        permanently_deleted = cursor.rowcount
+        expired_deleted = cursor.rowcount
+        if expired_ids:
+            await self._prune_association_references(expired_ids)
 
         # Clean up old access logs
-        cursor = await self.conn.execute(
+        conn = self._get_conn()
+        cursor = await conn.execute(
             "DELETE FROM memory_access_log WHERE created_at < ?",
             (ninety_days_ago,),
         )
         logs_deleted = cursor.rowcount
 
-        await self.conn.commit()
+        conn = self._get_conn()
+        await conn.commit()
 
         return {
-            "expired_archived": expired_before,
-            "permanently_deleted": permanently_deleted,
+            "expired_deleted": expired_deleted,
             "logs_deleted": logs_deleted,
         }
+
+    async def _prune_association_references(self, removed_ids: List[str]) -> int:
+        """Remove deleted memory IDs from all associated_memories arrays.
+
+        Args:
+            removed_ids: Memory IDs that were removed.
+
+        Returns:
+            Count of memory rows whose associations were updated.
+        """
+        if not removed_ids:
+            return 0
+
+        removed_set = set(removed_ids)
+        updated_rows = 0
+
+        conn = self._get_conn()
+        async with conn.execute(
+            "SELECT id, associated_memories FROM memories WHERE associated_memories IS NOT NULL"
+        ) as cursor:
+            rows = await cursor.fetchall()
+
+        for row in rows:
+            raw_assoc = row["associated_memories"]
+            if not raw_assoc:
+                continue
+
+            try:
+                current_ids = json.loads(raw_assoc)
+            except json.JSONDecodeError:
+                # Ignore malformed payloads; existing decode fallback behavior handles reads.
+                continue
+
+            if not isinstance(current_ids, list):
+                continue
+
+            pruned_ids = [mid for mid in current_ids if str(mid) not in removed_set]
+            if pruned_ids == current_ids:
+                continue
+
+            await self.conn.execute(
+                "UPDATE memories SET associated_memories = ?, updated_at = ? WHERE id = ?",
+                (
+                    json.dumps(pruned_ids),
+                    datetime.now(timezone.utc).isoformat(),
+                    row["id"],
+                ),
+            )
+            updated_rows += 1
+
+        return updated_rows
 
     async def get_memory_stats(self) -> Dict[str, Any]:
         """Get memory statistics."""
@@ -588,20 +656,17 @@ class DatabaseManager:
             SELECT
                 memory_type,
                 importance,
-                status,
                 COUNT(*) as count
             FROM memories
-            GROUP BY memory_type, importance, status
-            ORDER BY memory_type, importance, status
+            GROUP BY memory_type, importance
+            ORDER BY memory_type, importance
         """) as cursor:
             stats = await cursor.fetchall()
 
-        async with self.conn.execute(
-            "SELECT COUNT(*) FROM memories WHERE status = 'active'"
-        ) as cursor:
+        async with self.conn.execute("SELECT COUNT(*) FROM memories") as cursor:
             total = (await cursor.fetchone())[0]
 
-        return {"total_active": total, "breakdown": [dict(row) for row in stats]}
+        return {"total_memories": total, "breakdown": [dict(row) for row in stats]}
 
     async def add_association(
         self,
@@ -657,7 +722,8 @@ class DatabaseManager:
             List of associated memory records
         """
         # Get current associated_memories
-        async with self.conn.execute(
+        conn = self._get_conn()
+        async with conn.execute(
             "SELECT associated_memories FROM memories WHERE id = ?",
             (memory_id,),
         ) as cursor:
@@ -676,8 +742,9 @@ class DatabaseManager:
 
         # Get direct associations
         placeholders = ",".join(["?"] * len(associated_ids))
-        async with self.conn.execute(
-            f"SELECT * FROM memories WHERE id IN ({placeholders}) AND status = 'active'",
+        conn = self._get_conn()
+        async with conn.execute(
+            f"SELECT * FROM memories WHERE id IN ({placeholders})",
             associated_ids,
         ) as cursor:
             direct_associations = await cursor.fetchall()
@@ -702,7 +769,7 @@ class DatabaseManager:
                     if nested_ids:
                         placeholders = ",".join(["?"] * len(nested_ids))
                         async with self.conn.execute(
-                            f"SELECT * FROM memories WHERE id IN ({placeholders}) AND status = 'active'",
+                            f"SELECT * FROM memories WHERE id IN ({placeholders})",
                             nested_ids,
                         ) as cursor:
                             nested = await cursor.fetchall()
@@ -822,14 +889,16 @@ class DatabaseManager:
         access_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
 
-        await self.conn.execute(
+        conn = self._get_conn()
+        await conn.execute(
             """
             INSERT INTO memory_access_log (id, memory_id, accessed_by, access_type, created_at)
             VALUES (?, ?, 'system', 'read', ?)
         """,
             (access_id, memory_id, now),
         )
-        await self.conn.commit()
+        conn = self._get_conn()
+        await conn.commit()
 
     def _row_to_dict(self, row) -> Dict[str, Any]:
         """Convert database row to dictionary."""
@@ -851,28 +920,17 @@ class DatabaseManager:
 
         # Parse associated_memories from JSON
         associated_memories = []
-        if row.get("associated_memories"):
+        if "associated_memories" in row.keys() and row["associated_memories"]:
             try:
                 associated_memories = json.loads(row["associated_memories"])
             except json.JSONDecodeError:
                 associated_memories = []
-
-        # Parse timestamps
-        def parse_timestamp(ts):
-            if ts is None:
-                return None
-            try:
-                # Handle SQLite datetime format
-                return datetime.fromisoformat(str(ts))
-            except (ValueError, TypeError):
-                return None
 
         return {
             "id": str(row["id"]),
             "name": row["name"],
             "memory_type": row["memory_type"],
             "importance": row["importance"],
-            "status": row["status"],
             "content": row["content"],
             "summary": row["summary"],
             "tags": tags,
@@ -880,7 +938,9 @@ class DatabaseManager:
             "source_context": row["source_context"],
             "source_tool": row["source_tool"],
             "parent_memory_id": (
-                str(row["parent_memory_id"]) if row.get("parent_memory_id") else None
+                str(row["parent_memory_id"])
+                if "parent_memory_id" in row.keys() and row["parent_memory_id"]
+                else None
             ),
             "associated_memories": associated_memories,
             "metadata": metadata,

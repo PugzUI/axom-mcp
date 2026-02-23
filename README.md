@@ -85,15 +85,25 @@ PY
 
 See [docs/agents/INDEX.md](docs/agents/INDEX.md) for detailed agent configuration.
 
-For Zed, `~/.config/zed/settings.json` should contain:
+For Cursor, `~/.cursor/mcp.json` should contain:
 
 ```json
-"context_servers": {
-  "axom": {
-    "command": "axom-mcp",
-    "args": []
+{
+  "mcpServers": {
+    "axom": {
+      "command": "axom-mcp",
+      "args": []
+    }
   }
 }
+```
+
+For Codex, `~/.codex/config.toml` should contain:
+
+```toml
+[context_servers.axom]
+command = "axom-mcp"
+args = []
 ```
 
 ---

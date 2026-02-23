@@ -107,7 +107,7 @@ class TestMemoryToolSchema:
     def test_memory_tool_importance_enum(self, memory_tool):
         """Test memory tool importance has correct enum values."""
         imp_prop = memory_tool.inputSchema["properties"]["importance"]
-        expected_levels = ["critical", "important", "normal", "low"]
+        expected_levels = ["low", "high", "critical"]
         assert set(imp_prop["enum"]) == set(expected_levels)
 
     def test_memory_tool_has_tags_property(self, memory_tool):
@@ -597,7 +597,7 @@ class TestServerDriftDetection:
 
         memory_tool = next(t for t in TOOLS if t.name == "axom_mcp_memory")
         levels = memory_tool.inputSchema["properties"]["importance"]["enum"]
-        expected = ["critical", "important", "normal", "low"]
+        expected = ["low", "high", "critical"]
 
         assert set(levels) == set(
             expected

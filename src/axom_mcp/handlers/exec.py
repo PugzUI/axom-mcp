@@ -305,7 +305,7 @@ class ChainEngine:
     def _get_variable(self, path: str, variables: Dict[str, Any]) -> Any:
         """Get a variable value by path."""
         parts = path.split(".")
-        value = variables
+        value: Any = variables
         for part in parts:
             if isinstance(value, dict):
                 value = value.get(part)
@@ -319,11 +319,11 @@ class ChainEngine:
             result = obj
             pattern = r"\$\{([^}]+)\}"
 
-            def replace_var(match):
+            def replace_var(match: re.Match) -> str:
                 var_path = match.group(1)
                 value = self._get_variable(var_path, variables)
                 if value is None:
-                    return match.group(0)
+                    return str(match.group(0))
                 if isinstance(value, (dict, list)):
                     return json.dumps(value)
                 return str(value)

@@ -30,6 +30,29 @@ SKILLS = {
     "axom-transform": "docs/agents/skills/axom-transform/SKILL.md",
 }
 
+SKILL_DESCRIPTIONS = {
+    "axom-memory": (
+        "Memory tool that challenges itself, other agents, and users to re-think, "
+        "seek optimal solutions, and improve creativity and focus."
+    ),
+    "axom-exec": (
+        "Atomic chains and tool abstraction for efficient file operations and shell "
+        "workflows with minimal wasted steps."
+    ),
+    "axom-discover": (
+        "Map files, tools, memories, and capabilities before acting to reduce blind "
+        "execution and improve precision."
+    ),
+    "axom-analyze": (
+        "Deep analysis workflow for debugging, review, audit, refactor, and test "
+        "coverage with actionable output."
+    ),
+    "axom-transform": (
+        "Format conversion, templating, and rule-based data transformation for "
+        "pipeline and chain-reaction workflows."
+    ),
+}
+
 PALETTE = {
     "header": "\033[38;5;214m",
     "info": "\033[38;5;221m",
@@ -108,6 +131,29 @@ def expand_path(path_str: str) -> Path:
     # but some paths might use forward slashes or different separators.
     # We normalize to ensure consistency.
     return Path(expanded).resolve()
+
+
+def _has_yaml_frontmatter(content: str) -> bool:
+    """Check whether content starts with a YAML frontmatter block."""
+    stripped = content.lstrip()
+    if not stripped.startswith("---"):
+        return False
+    return re.match(r"^---\s*\n.*?\n---\s*(\n|$)", stripped, re.DOTALL) is not None
+
+
+def _ensure_skill_frontmatter(content: str, skill_name: str) -> str:
+    """Add required SKILL.md frontmatter when it is missing."""
+    if _has_yaml_frontmatter(content):
+        return content
+
+    description = SKILL_DESCRIPTIONS.get(skill_name, f"Axom skill: {skill_name}.")
+    frontmatter = (
+        f"---\n"
+        f"name: {skill_name}\n"
+        f"description: {json.dumps(description, ensure_ascii=True)}\n"
+        f"---\n\n"
+    )
+    return frontmatter + content.lstrip("\n")
 
 
 def get_ide_installed_extensions(ide_name: str) -> set[str]:
@@ -931,6 +977,7 @@ def install_skills_config(
 ) -> bool:
     """Install Skills configuration."""
     path = expand_path(config_spec.get("path", ""))
+    requires_frontmatter = bool(config_spec.get("requires_frontmatter", False))
 
     if dry_run:
         _print_dry_run(f"Would install Skills to: {path}")
@@ -948,7 +995,10 @@ def install_skills_config(
             skill_dir = path / skill_name
             skill_dir.mkdir(exist_ok=True)
             dest = skill_dir / "SKILL.md"
-            dest.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+            content = source.read_text(encoding="utf-8")
+            if requires_frontmatter:
+                content = _ensure_skill_frontmatter(content, skill_name)
+            dest.write_text(content, encoding="utf-8")
             installed_count += 1
             last_dest = str(dest)
 

@@ -83,8 +83,7 @@ async def sqlite_db():
         CREATE TABLE IF NOT EXISTS memories (
             id TEXT PRIMARY KEY,
             memory_type TEXT NOT NULL CHECK(memory_type IN ('short_term', 'long_term', 'reflex', 'dreams')),
-            importance TEXT NOT NULL DEFAULT 'normal' CHECK(importance IN ('critical', 'important', 'normal', 'low')),
-            status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived', 'forgotten', 'deleted')),
+            importance TEXT NOT NULL DEFAULT 'high' CHECK(importance IN ('critical', 'high', 'low')),
             name TEXT,
             content TEXT NOT NULL,
             summary TEXT,
@@ -127,8 +126,7 @@ def sample_memory_data() -> Dict[str, Any]:
         "id": "12345678-1234-1234-1234-123456789abc",
         "name": "pattern_test_20260215",
         "memory_type": "long_term",
-        "importance": "important",
-        "status": "active",
+        "importance": "high",
         "content": "TASK|Test task|APPROACH|Test approach|OUTCOME|Success|GOTCHAS|None|RELATED|test",
         "summary": "Test memory summary",
         "tags": ["test", "example", "pytest"],
@@ -167,7 +165,7 @@ def sample_memories_list() -> List[Dict[str, Any]]:
             "id": "uuid-1",
             "name": "pattern_api_20260201",
             "memory_type": "long_term",
-            "importance": "important",
+            "importance": "high",
             "content": "API pattern for REST endpoints",
             "tags": ["api", "rest"],
             "created_at": "2026-02-01T10:00:00",
@@ -176,7 +174,7 @@ def sample_memories_list() -> List[Dict[str, Any]]:
             "id": "uuid-2",
             "name": "bugfix_auth_20260210",
             "memory_type": "short_term",
-            "importance": "normal",
+            "importance": "low",
             "content": "Fixed authentication timeout issue",
             "tags": ["bugfix", "auth"],
             "created_at": "2026-02-10T15:30:00",
@@ -271,10 +269,10 @@ def broken_function():
 
 class TestClass:
     """A test class."""
-    
+
     def __init__(self, value):
         self.value = value
-    
+
     def get_value(self):
         return self.value
 
@@ -300,7 +298,7 @@ def memory_write_input() -> Dict[str, Any]:
         "name": "test_memory_20260215",
         "content": "Test memory content with TASK|APPROACH|OUTCOME format",
         "memory_type": "long_term",
-        "importance": "important",
+        "importance": "high",
         "tags": ["test", "pytest"],
         "source_agent": "test-runner",
     }
@@ -332,7 +330,7 @@ def memory_list_input() -> Dict[str, Any]:
     return {
         "action": "list",
         "memory_type": "long_term",
-        "importance": "important",
+        "importance": "high",
         "limit": 50,
     }
 

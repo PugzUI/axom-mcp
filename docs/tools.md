@@ -13,7 +13,7 @@ Manage persistent memories in the Axom SQLite database.
 | `content`         | string  | No       | Text content to store (required for `write`)               |
 | `query`           | string  | No       | Search term for `search` action                            |
 | `memory_type`     | string  | No       | `short_term`, `long_term`, `reflex`, `dreams`              |
-| `importance`      | string  | No       | `critical`, `important`, `normal`, `low`                   |
+| `importance`      | string  | No       | `low`, `high`, `critical`                                  |
 | `tags`            | array   | No       | List of strings for categorization                         |
 | `limit`           | integer | No       | Maximum results to return (default: 50)                    |
 | `expires_in_days` | integer | No       | Override default expiration                                |

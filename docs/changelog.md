@@ -2,8 +2,7 @@
 
 ## 2026-02-23 - Cleanup Pass
 
-- **Scope**: Repository-wide cleanup, linting remediation, and workflow integration.
-- **Quality**: Reformatted 11 files with Black/Isort; resolved 20+ Mypy type errors (dataclass mutable defaults, optional connection handling, type casting).
-- **Validation**: All 182 tests passed (drift, handlers, schemas, server).
-- **Docs**: Created `docs/changelog.md`, updated `.gitignore` for `docs/cleanup.md`, and fixed Makefile logging helpers.
-- **Workflow**: Initialized and installed the `cleanup` skill globally for Gemini CLI.
+- Scope: Complete repository cleanup and restoration. Fixed critical server bugs, schema mismatches, and test failures.
+- Quality: Reformatted codebase (Black/Isort); resolved 60+ Mypy errors (type annotations, union attributes, connection handling).
+- Validation: 212 tests pass (Core + Integration + Full Coverage). Fixed Pydantic validation and SyntaxErrors in server.
+- Docs: Updated server behavior, fixed prompt schemas, and synced docs to Obsidian.

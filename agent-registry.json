@@ -14,9 +14,17 @@
             "executables": ["cursor", "cursor-server"]
           },
           "configs": {
-            "mcp": {"path": "~/.cursor/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.cursor/rules", "format": "flat", "ext": ".mdc"},
-            "skills": {"path": "~/.cursor/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.cursor/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": {
+              "path": "~/.cursor/rules",
+              "format": "flat",
+              "ext": ".mdc"
+            },
+            "skills": { "path": "~/.cursor/skills", "format": "dir" }
           }
         },
         "cli": {
@@ -36,9 +44,13 @@
             "executables": ["kiro-cli", "kiro"]
           },
           "configs": {
-            "mcp": {"path": "~/.kiro/settings/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.kiro/AGENTS.md", "format": "marker"},
-            "skills": {"path": "~/.kiro/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.kiro/settings/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.kiro/AGENTS.md", "format": "marker" },
+            "skills": { "path": "~/.kiro/skills", "format": "dir" }
           }
         }
       }
@@ -52,9 +64,12 @@
             "executables": ["zed"]
           },
           "configs": {
-            "mcp": {"path": "~/.config/zed/settings.json", "format": "jsonc", "key": "context_servers", "inject": true},
-            "rules": {"path": "~/.config/zed/AGENTS.md", "format": "marker"},
-            "skills": {"path": "~/.config/zed/rules", "format": "dir"}
+            "mcp": {
+              "path": "~/.config/zed/settings.json",
+              "format": "jsonc",
+              "key": "context_servers",
+              "inject": true
+            }
           }
         }
       }
@@ -68,9 +83,16 @@
             "executables": ["windsurf"]
           },
           "configs": {
-            "mcp": {"path": "~/.codeium/windsurf/mcp_config.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.windsurf/global_rules.md", "format": "marker"},
-            "skills": {"path": "~/.windsurf/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.codeium/windsurf/mcp_config.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": {
+              "path": "~/.windsurf/global_rules.md",
+              "format": "marker"
+            },
+            "skills": { "path": "~/.windsurf/skills", "format": "dir" }
           }
         }
       }
@@ -84,9 +106,13 @@
             "executables": ["Trae"]
           },
           "configs": {
-            "mcp": {"path": "~/.trae/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.trae/user_rules.md", "format": "marker"},
-            "skills": {"path": "~/.trae/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.trae/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.trae/user_rules.md", "format": "marker" },
+            "skills": { "path": "~/.trae/skills", "format": "dir" }
           }
         }
       }
@@ -100,9 +126,17 @@
             "executables": ["codex"]
           },
           "configs": {
-            "mcp": {"path": "~/.codex/config.toml", "format": "toml", "key": "mcp_servers"},
-            "rules": {"path": "~/.codex/AGENTS.md", "format": "marker"},
-            "skills": {"path": "~/.codex/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.codex/config.toml",
+              "format": "toml",
+              "key": "mcp_servers"
+            },
+            "rules": { "path": "~/.codex/AGENTS.md", "format": "marker" },
+            "skills": {
+              "path": "~/.codex/skills",
+              "format": "dir",
+              "requires_frontmatter": true
+            }
           }
         }
       }
@@ -116,9 +150,13 @@
             "executables": ["gemini"]
           },
           "configs": {
-            "mcp": {"path": "~/.gemini/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.gemini/GEMINI.md", "format": "marker"},
-            "skills": {"path": "~/.gemini/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.gemini/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.gemini/GEMINI.md", "format": "marker" },
+            "skills": { "path": "~/.gemini/skills", "format": "dir" }
           }
         }
       }
@@ -132,9 +170,13 @@
             "executables": ["qwen"]
           },
           "configs": {
-            "mcp": {"path": "~/.qwen/settings.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.qwen/QWEN.md", "format": "marker"},
-            "skills": {"path": "~/.qwen/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.qwen/settings.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.qwen/QWEN.md", "format": "marker" },
+            "skills": { "path": "~/.qwen/skills", "format": "dir" }
           }
         }
       }
@@ -148,9 +190,16 @@
             "executables": ["opencode"]
           },
           "configs": {
-            "mcp": {"path": "~/.config/opencode/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.config/opencode/AGENTS.md", "format": "marker"},
-            "skills": {"path": "~/.config/opencode/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.config/opencode/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": {
+              "path": "~/.config/opencode/AGENTS.md",
+              "format": "marker"
+            },
+            "skills": { "path": "~/.config/opencode/skills", "format": "dir" }
           }
         }
       }
@@ -164,9 +213,16 @@
             "executables": ["junie"]
           },
           "configs": {
-            "mcp": {"path": "~/.config/junie/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.config/junie/AGENTS.md", "format": "marker"},
-            "skills": {"path": "~/.config/junie/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.config/junie/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": {
+              "path": "~/.config/junie/AGENTS.md",
+              "format": "marker"
+            },
+            "skills": { "path": "~/.config/junie/skills", "format": "dir" }
           }
         }
       }
@@ -180,9 +236,17 @@
             "executables": ["antigravity", "antigravity-server"]
           },
           "configs": {
-            "mcp": {"path": "~/.antigravity/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.antigravity/rules", "format": "flat", "ext": ".mdc"},
-            "skills": {"path": "~/.antigravity/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.antigravity/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": {
+              "path": "~/.antigravity/rules",
+              "format": "flat",
+              "ext": ".mdc"
+            },
+            "skills": { "path": "~/.antigravity/skills", "format": "dir" }
           }
         }
       }
@@ -196,9 +260,13 @@
             "executables": ["claude"]
           },
           "configs": {
-            "mcp": {"path": "~/.claude/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.claude/CLAUDE.md", "format": "marker"},
-            "skills": {"path": "~/.claude/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.claude/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.claude/CLAUDE.md", "format": "marker" },
+            "skills": { "path": "~/.claude/skills", "format": "dir" }
           }
         }
       }
@@ -212,9 +280,13 @@
             "executables": ["vibe"]
           },
           "configs": {
-            "mcp": {"path": "~/.config/vibe/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.config/vibe/AGENTS.md", "format": "marker"},
-            "skills": {"path": "~/.config/vibe/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.config/vibe/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.config/vibe/AGENTS.md", "format": "marker" },
+            "skills": { "path": "~/.config/vibe/skills", "format": "dir" }
           }
         }
       }
@@ -228,7 +300,7 @@
             "executables": ["crush"]
           },
           "configs": {
-            "skills": {"path": "~/.config/crush/skills", "format": "dir"}
+            "skills": { "path": "~/.config/crush/skills", "format": "dir" }
           }
         }
       }
@@ -242,9 +314,13 @@
             "executables": ["kilo"]
           },
           "configs": {
-            "mcp": {"path": "~/.kilocode/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.kilocode/rules", "format": "dir"},
-            "skills": {"path": "~/.kilocode/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.kilocode/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.kilocode/rules", "format": "dir" },
+            "skills": { "path": "~/.kilocode/skills", "format": "dir" }
           }
         },
         "cursor_extension": {
@@ -254,9 +330,19 @@
             "executables": []
           },
           "configs": {
-            "mcp": {"path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/settings/mcp_settings.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/rules", "format": "dir"},
-            "skills": {"path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/settings/mcp_settings.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": {
+              "path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/rules",
+              "format": "dir"
+            },
+            "skills": {
+              "path": "~/.config/Cursor/User/globalStorage/kilocode.kilo-code/skills",
+              "format": "dir"
+            }
           }
         }
       }
@@ -270,13 +356,19 @@
             "executables": []
           },
           "configs": {
-            "mcp": {"path": "~/.cline/data/mcp.json", "format": "json", "key": "mcpServers"}
+            "mcp": {
+              "path": "~/.cline/data/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            }
           }
         },
         "extension": {
           "extension_id": "saoudrizwan.claude-dev",
           "detection": {
-            "paths": ["~/.config/Cursor/User/globalStorage/saoudrizwan.claude-dev"],
+            "paths": [
+              "~/.config/Cursor/User/globalStorage/saoudrizwan.claude-dev"
+            ],
             "executables": []
           }
         }
@@ -291,15 +383,21 @@
             "executables": ["roo"]
           },
           "configs": {
-            "mcp": {"path": "~/.roo/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.roo/ROO.md", "format": "marker"},
-            "skills": {"path": "~/.roo/skills", "format": "dir"}
+            "mcp": {
+              "path": "~/.roo/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.roo/ROO.md", "format": "marker" },
+            "skills": { "path": "~/.roo/skills", "format": "dir" }
           }
         },
         "extension": {
           "extension_id": "rooveterinaryinc.roo-cline",
           "detection": {
-            "paths": ["~/.config/Cursor/User/globalStorage/rooveterinaryinc.roo-cline"],
+            "paths": [
+              "~/.config/Cursor/User/globalStorage/rooveterinaryinc.roo-cline"
+            ],
             "executables": []
           }
         }
@@ -315,8 +413,12 @@
             "executables": []
           },
           "configs": {
-            "mcp": {"path": "~/.continue/config.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.continue/AGENTS.md", "format": "marker"}
+            "mcp": {
+              "path": "~/.continue/config.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.continue/AGENTS.md", "format": "marker" }
           }
         }
       }
@@ -331,8 +433,12 @@
             "executables": ["augment"]
           },
           "configs": {
-            "mcp": {"path": "~/.augment/mcp.json", "format": "json", "key": "mcpServers"},
-            "rules": {"path": "~/.augment/AGENTS.md", "format": "marker"}
+            "mcp": {
+              "path": "~/.augment/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            },
+            "rules": { "path": "~/.augment/AGENTS.md", "format": "marker" }
           }
         }
       }
@@ -347,7 +453,11 @@
             "executables": []
           },
           "configs": {
-            "mcp": {"path": "~/.aws/amazonq/mcp.json", "format": "json", "key": "mcpServers"}
+            "mcp": {
+              "path": "~/.aws/amazonq/mcp.json",
+              "format": "json",
+              "key": "mcpServers"
+            }
           }
         }
       }
@@ -367,8 +477,30 @@
       "~/.config/Code/User/extensions/*/package.json"
     ],
     "agent_indicators": {
-      "executables": ["kilo", "cline", "cursor", "zed", "codex", "claude", "qwen", "gemini", "trae", "windsurf", "roo", "opencode", "junie", "vibe", "kiro", "augment"],
-      "config_files": ["cli-config.json", "settings.json", "mcp.json", "config.toml"]
+      "executables": [
+        "kilo",
+        "cline",
+        "cursor",
+        "zed",
+        "codex",
+        "claude",
+        "qwen",
+        "gemini",
+        "trae",
+        "windsurf",
+        "roo",
+        "opencode",
+        "junie",
+        "vibe",
+        "kiro",
+        "augment"
+      ],
+      "config_files": [
+        "cli-config.json",
+        "settings.json",
+        "mcp.json",
+        "config.toml"
+      ]
     }
   }
 }

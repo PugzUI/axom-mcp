@@ -215,8 +215,8 @@ db-help:
 	@printf "\n"
 
 db-check:
-	@$(LOG_INFO) "SQLite database file will be created on first use"
-	@$(LOG_INFO) "Default location: ~/.axom/axom.db"
+	@$(LOG_INFO) "Verifying SQLite database connectivity and schema"
+	@$(PYTHON) scripts/verify_db.py
 
 # =============================================================================
 # TEST GROUP (make test-help)
@@ -237,6 +237,7 @@ else
 	@printf "    make test        Run all tests (core + integration)\n"
 	@printf "    make test-core   Run core unit tests only\n"
 	@printf "    make test-int    Run integration tests\n"
+	@printf "    make test-cov    Run tests with coverage gate\n"
 	@printf "\n"
 endif
 
@@ -246,6 +247,12 @@ test-core:
 
 test-int:
 	@$(PYTHON) -m pytest tests/test_axom_mcp/test_integration.py -v
+
+test-cov:
+	@$(PYTHON) -m pytest tests/test_axom_mcp/ -v \
+		--cov=src/axom_mcp \
+		--cov-report=term-missing \
+		--cov-fail-under=100
 
 # =============================================================================
 # AGENTS GROUP (make agents-help)

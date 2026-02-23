@@ -52,7 +52,7 @@ Store what you learned, not just what you did.
 | `action`      | `"write"`                                           |
 | `name`        | `[type]_[descriptor]_[YYYYMMDD]`                    |
 | `content`     | Reflective structure below                          |
-| `importance`  | `critical` \| `important` \| `normal` \| `low`      |
+| `importance`  | `low` \| `high` \| `critical`                        |
 | `memory_type` | `long_term` \| `short_term` \| `reflex` \| `dreams` |
 | `tags`        | 2–5 strings for future search                       |
 

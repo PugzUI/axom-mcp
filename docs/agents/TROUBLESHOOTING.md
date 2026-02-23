@@ -2,6 +2,20 @@
 
 Common issues and solutions for Axom MCP.
 
+## Agent Limitations
+
+### Zed
+
+**Zed does not support global rules or skills.** Zed only supports:
+- Project-level rules: `.rules`, `AGENTS.md`, `.cursorrules`, etc. in project root
+- Rules Library: Internal database (no CLI/API to inject rules)
+
+For Zed, only MCP configuration is installed. To use Axom rules:
+1. Copy `AGENTS.md` to your project root, OR
+2. Manually add rules via Zed's Rules Library (`cmd-alt-l`)
+
+---
+
 ## Quick Diagnostics
 
 ### Tool Not Found
@@ -27,9 +41,9 @@ Common issues and solutions for Axom MCP.
 
 1. Re-run install from the repo root: `make install`.
 2. Confirm command exists: `command -v axom-mcp`.
-3. For Zed, verify `~/.config/zed/settings.json` uses:
-   - `context_servers.axom.command = "axom-mcp"`
-   - `context_servers.axom.args = []`
+3. For Cursor, verify `~/.cursor/mcp.json` uses:
+   - `mcpServers.axom.command = "axom-mcp"`
+   - `mcpServers.axom.args = []`
 4. Restart the IDE/client after config changes.
 
 ### Chain Execution Failed

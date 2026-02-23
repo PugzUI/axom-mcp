@@ -23,6 +23,15 @@ from ..schemas import DiscoverInput
 logger = logging.getLogger(__name__)
 
 
+def _to_iso_or_str(value: Any) -> Any:
+    """Return ISO string for datetimes, passthrough for pre-serialized values."""
+    if value is None:
+        return None
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
 def _validate_path(target: str) -> Path:
     """Validate path is within allowed directories."""
     path = Path(target).resolve()
@@ -80,7 +89,7 @@ async def _discover_files(
     filter_criteria: Dict[str, Any], limit: int, recursive: bool
 ) -> str:
     """Discover files in allowed directories."""
-    results = []
+    results: List[Dict[str, Any]] = []
     pattern = filter_criteria.get("pattern", "*")
     file_type = filter_criteria.get("type", "all")  # file, directory, all
     base_path = filter_criteria.get("path", os.getcwd())
@@ -187,7 +196,7 @@ async def _discover_tools() -> str:
                 },
                 "importance": {
                     "type": "string",
-                    "enum": ["critical", "important", "normal", "low"],
+                    "enum": ["low", "high", "critical"],
                 },
                 "tags": {"type": "array", "items": {"type": "string"}},
                 "limit": {"type": "integer", "default": 50},
@@ -322,11 +331,7 @@ async def _discover_memory(limit: int) -> str:
                         "name": m.get("name"),
                         "type": m.get("memory_type"),
                         "importance": m.get("importance"),
-                        "created_at": (
-                            m.get("created_at").isoformat()
-                            if m.get("created_at")
-                            else None
-                        ),
+                        "created_at": _to_iso_or_str(m.get("created_at")),
                     }
                     for m in recent
                 ],
@@ -355,7 +360,7 @@ async def _discover_capabilities() -> str:
             "memory": {
                 "available": True,
                 "types": ["long_term", "short_term", "reflex", "dreams"],
-                "importance_levels": ["critical", "important", "normal", "low"],
+                "importance_levels": ["low", "high", "critical"],
                 "max_content_size": 1000000,
             },
             "exec": {

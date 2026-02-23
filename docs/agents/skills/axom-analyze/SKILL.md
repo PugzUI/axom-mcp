@@ -48,7 +48,7 @@ will search and find what you learned. Make analysis persist.
         "action": "write",
         "name": "bugfix_analysis_20260222",
         "content": "TASK: Debug TypeError\nAPPROACH: ${_result.summary}\nOUTCOME: Pending fix\nGOTCHAS: ${_result.details}",
-        "importance": "important",
+        "importance": "high",
         "memory_type": "short_term"
       }
     }
@@ -71,7 +71,7 @@ will search and find what you learned. Make analysis persist.
         "action": "write",
         "name": "review_api_handlers_20260222",
         "content": "${_result}",
-        "importance": "normal",
+        "importance": "low",
         "tags": ["review", "api", "handlers"]
       }
     }
