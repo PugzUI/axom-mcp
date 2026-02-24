@@ -8,7 +8,12 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from mcp.types import CallToolRequest, ListResourcesRequest, ReadResourceRequest
+from mcp.types import (
+    CallToolRequest,
+    GetPromptRequest,
+    ListResourcesRequest,
+    ReadResourceRequest,
+)
 
 from axom_mcp import server
 from axom_mcp.database import DatabaseManager, close_db_manager, get_db_manager
@@ -418,6 +423,121 @@ async def test_server_call_tool_and_list_resources_error_paths(monkeypatch):
         await handlers[ReadResourceRequest](
             ReadResourceRequest(params={"uri": "memory://missing_abc"})
         )
+
+
+@pytest.mark.asyncio
+async def test_prompt_includes_compact_recent_context_banner(monkeypatch):
+    s = server.create_server()
+    handlers = s.request_handlers
+
+    db = SimpleNamespace(
+        list_memories=AsyncMock(
+            return_value=[
+                {
+                    "name": "ops_copy_env_example_to_env_20260224",
+                    "tags": ["env", "config"],
+                },
+                {
+                    "name": "feature_output_styles_formatter_20260224",
+                    "tags": ["output", "style"],
+                },
+                {
+                    "name": "feature_neon_terminal_panel_20260224",
+                    "tags": ["neon", "ui"],
+                },
+                {
+                    "name": "feature_should_not_appear_20260224",
+                    "tags": ["ignored"],
+                },
+            ]
+        )
+    )
+
+    async def fake_get_db():
+        return db
+
+    monkeypatch.setattr(server, "get_db_manager", fake_get_db)
+
+    prompt = await handlers[GetPromptRequest](
+        GetPromptRequest(
+            params={"name": "memory-workflow", "arguments": {"task_description": "x"}}
+        )
+    )
+    text = prompt.root.messages[0].content.text
+
+    assert "|Axom-Context:||" in text
+    assert "|Axom-Memory||Search:||" in text
+    assert "||env,config||output,style||neon,ui|" in text
+    assert "feature_should_not_appear" not in text
+    assert "ops_copy_env_example_to_env" not in text
+    assert "feature_output_styles_formatter" not in text
+    assert "feature_neon_terminal_panel" not in text
+    assert "||env||config||output|" in text
+
+
+@pytest.mark.asyncio
+async def test_server_tool_output_styles(monkeypatch):
+    s = server.create_server()
+    handlers = s.request_handlers
+
+    async def fake_transform(_arguments):
+        return json.dumps(
+            {
+                "success": True,
+                "count": 1,
+                "results": [
+                    {
+                        "name": "preview_row",
+                        "memory_type": "long_term",
+                        "importance": "high",
+                        "relevance": 0.3,
+                    }
+                ],
+            }
+        )
+
+    monkeypatch.setattr(server, "handle_transform", fake_transform)
+
+    request = CallToolRequest(
+        params={
+            "name": "axom_mcp_transform",
+            "arguments": {"input": '{"a":1}', "output_format": "json"},
+        }
+    )
+
+    # Default style: pretty_json.
+    monkeypatch.delenv("AXOM_TOOL_OUTPUT_STYLE", raising=False)
+    pretty_json_out = await handlers[CallToolRequest](request)
+    pretty_json_text = pretty_json_out.root.content[0].text
+    assert pretty_json_text.startswith("{\n")
+    assert '"success": true' in pretty_json_text
+    assert '\n  "count": 1' in pretty_json_text
+
+    # Legacy compact JSON style.
+    monkeypatch.setenv("AXOM_TOOL_OUTPUT_STYLE", "json")
+    json_out = await handlers[CallToolRequest](request)
+    json_text = json_out.root.content[0].text
+    assert json_text.startswith('{"success": true')
+    assert "\n" not in json_text
+
+    # Rich markdown style with table + raw JSON block.
+    monkeypatch.setenv("AXOM_TOOL_OUTPUT_STYLE", "pretty")
+    pretty_out = await handlers[CallToolRequest](request)
+    pretty_text = pretty_out.root.content[0].text
+    assert "**axom_mcp_transform**" in pretty_text
+    assert "status: success" in pretty_text
+    assert "results:" in pretty_text
+    assert "raw_json:" in pretty_text
+    assert "```json" in pretty_text
+
+    # Terminal-inspired neon style.
+    monkeypatch.setenv("AXOM_TOOL_OUTPUT_STYLE", "neon")
+    neon_out = await handlers[CallToolRequest](request)
+    neon_text = neon_out.root.content[0].text
+    assert "AXOM NEON PANEL ::" in neon_text
+    assert "preview::results" in neon_text
+    assert "```text" in neon_text
+    assert "```json" in neon_text
 
 
 def test_transform_uncovered_branches():

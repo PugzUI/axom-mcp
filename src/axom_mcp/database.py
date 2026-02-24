@@ -193,6 +193,8 @@ class DatabaseManager:
             await conn.execute(
                 "UPDATE memories SET importance = 'high' WHERE importance = 'medium'"
             )
+            # Reconcile FTS rows for existing databases that predate FTS triggers.
+            await self._sync_fts_index()
         except Exception as e:
             # Ignore some expected errors (e.g., table already exists)
             if "already exists" not in str(e).lower():
@@ -200,6 +202,33 @@ class DatabaseManager:
 
         await conn.commit()
         logger.info("Database schema ensured from schema.sql")
+
+    async def _sync_fts_index(self) -> None:
+        """Ensure the FTS table reflects all rows in memories.
+
+        Existing databases may contain memories created before FTS triggers existed.
+        This reconciliation keeps search behavior correct after upgrades.
+        """
+        conn = self._get_conn()
+        try:
+            # Remove stale FTS rows for memories that no longer exist.
+            await conn.execute(
+                "DELETE FROM memories_fts WHERE id NOT IN (SELECT id FROM memories)"
+            )
+            # Backfill rows missing from FTS index.
+            await conn.execute("""
+                INSERT INTO memories_fts (id, name, content, tags)
+                SELECT m.id, m.name, m.content, m.tags
+                FROM memories m
+                LEFT JOIN memories_fts f ON f.id = m.id
+                WHERE f.id IS NULL
+                """)
+        except Exception as e:
+            # If FTS is unavailable, keep startup alive and rely on LIKE fallback.
+            if "memories_fts" in str(e).lower():
+                logger.warning(f"FTS index reconciliation skipped: {e}")
+                return
+            raise
 
     async def close(self) -> None:
         """Close database connection."""
@@ -411,7 +440,7 @@ class DatabaseManager:
             if any(ch in query for ch in ['"', "'", "-", ":", "(", ")", "/", "."]):
                 fts_query = f'"{query.replace(chr(34), chr(34) * 2)}"'
 
-            fts_clause = "JOIN memories_fts fts ON m.id = fts.id"
+            fts_clause = "JOIN memories_fts ON m.id = memories_fts.id"
             conditions.append("memories_fts MATCH ?")
             params.append(fts_query)
 
@@ -440,8 +469,22 @@ class DatabaseManager:
         """
 
         conn = self._get_conn()
-        async with conn.execute(sql_query, params) as cursor:
-            rows = await cursor.fetchall()
+        rows = []
+        try:
+            async with conn.execute(sql_query, params) as cursor:
+                rows = await cursor.fetchall()
+        except Exception as e:
+            # Graceful fallback for environments where FTS table is unavailable/corrupt.
+            logger.warning(f"FTS search failed, falling back to LIKE search: {e}")
+
+        # Fallback for stale/empty FTS indexes or FTS errors.
+        if query and not rows:
+            rows = await self._search_memories_like(
+                query=query,
+                memory_type=memory_type,
+                importance=importance,
+                limit=limit,
+            )
 
         results = [self._row_to_dict(row) for row in rows]
 
@@ -457,6 +500,41 @@ class DatabaseManager:
             ]
 
         return results
+
+    async def _search_memories_like(
+        self,
+        query: str,
+        memory_type: Optional[str],
+        importance: Optional[str],
+        limit: int,
+    ) -> List[aiosqlite.Row]:
+        """Fallback substring search when FTS is unavailable or empty."""
+        conditions = ["(m.name LIKE ? OR m.content LIKE ? OR m.tags LIKE ?)"]
+        like_query = f"%{query}%"
+        params: List[Any] = [like_query, like_query, like_query]
+
+        if memory_type:
+            conditions.append("m.memory_type = ?")
+            params.append(memory_type)
+
+        if importance:
+            conditions.append("m.importance = ?")
+            params.append(importance)
+
+        params.append(limit)
+
+        where_clause = f"WHERE {' AND '.join(conditions)}"
+        sql_query = f"""
+            SELECT m.*, 0.0 as rank
+            FROM memories m
+            {where_clause}
+            ORDER BY m.updated_at DESC, m.id DESC
+            LIMIT ?
+        """
+
+        conn = self._get_conn()
+        async with conn.execute(sql_query, params) as cursor:
+            return await cursor.fetchall()
 
     async def update_memory(
         self,
@@ -949,6 +1027,7 @@ class DatabaseManager:
             "accessed_at": str(row["accessed_at"]) if row["accessed_at"] else None,
             "expires_at": str(row["expires_at"]) if row["expires_at"] else None,
             "access_count": row["access_count"],
+            "rank": row["rank"] if "rank" in row.keys() else None,
         }
 
 

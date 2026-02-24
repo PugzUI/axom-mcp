@@ -2,6 +2,23 @@
 
 Axom provides five core MCP tools to empower AI agents with persistent memory and system interaction capabilities.
 
+## Tool Output Style
+
+Set `AXOM_TOOL_OUTPUT_STYLE` to control response rendering:
+
+- `pretty_json` (default): indented JSON output
+- `json`: compact JSON output (legacy)
+- `pretty`: markdown summary with table previews plus raw JSON block
+- `neon`: terminal-inspired ASCII panel preview + raw JSON block
+
+## Prompt Context Banner
+
+Prompt responses for `memory-workflow` and `debug-session` include a compact
+2-line context banner derived from the **3 most recent memories**:
+
+- `Axom-Context`: per-memory tag bundles (names hidden)
+- `Axom-Memory Search`: short unique tag hints for follow-up search queries
+
 ## `axom_mcp_memory`
 
 Manage persistent memories in the Axom SQLite database.

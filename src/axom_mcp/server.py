@@ -7,7 +7,9 @@ MCP Python SDK with @mcp.tool() decorator for tool registration.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional, cast
 
@@ -39,6 +41,323 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+PROMPT_RECENT_CONTEXT_LIMIT = 3
+PROMPT_CONTEXT_LABEL_MAX = 14
+PROMPT_SEARCH_TAG_LIMIT = 3
+PROMPT_CONTEXT_TAGS_PER_MEMORY = 2
+
+
+def _get_output_style() -> str:
+    """Return output style for tool responses.
+
+    Supported styles:
+    - json: compact JSON (legacy behavior)
+    - pretty_json: indented JSON (default)
+    - pretty: markdown summary + JSON block
+    - neon: terminal-inspired ASCII panel + JSON block
+    """
+    style = os.getenv("AXOM_TOOL_OUTPUT_STYLE", "pretty_json").strip().lower()
+    if style in {"json", "pretty_json", "pretty", "neon"}:
+        return style
+    return "pretty_json"
+
+
+def _truncate_value(value: Any, limit: int = 80) -> str:
+    """Return single-line text suitable for table cells."""
+    text = str(value).replace("\n", "\\n")
+    if len(text) > limit:
+        return text[: limit - 3] + "..."
+    return text
+
+
+def _build_table(items: List[Dict[str, Any]], max_rows: int = 8) -> List[str]:
+    """Render a compact markdown table preview for list payloads."""
+    if not items:
+        return []
+
+    preferred = ["name", "memory_type", "importance", "relevance", "message", "id"]
+    first_keys = list(items[0].keys())
+    columns = [key for key in preferred if key in first_keys]
+    if not columns:
+        columns = first_keys[:4]
+    if not columns:
+        return []
+
+    header = "| " + " | ".join(columns) + " |"
+    separator = "| " + " | ".join(["---"] * len(columns)) + " |"
+    rows: List[str] = [header, separator]
+
+    for row in items[:max_rows]:
+        cells = [_truncate_value(row.get(col, "")) for col in columns]
+        rows.append("| " + " | ".join(cells) + " |")
+
+    if len(items) > max_rows:
+        rows.append(f"... {len(items) - max_rows} more rows")
+    return rows
+
+
+def _fit_cell(value: Any, width: int) -> str:
+    """Fit a value into a fixed-width table cell."""
+    text = _truncate_value(value, limit=width)
+    return text.ljust(width)
+
+
+def _build_ascii_grid(
+    items: List[Dict[str, Any]],
+    columns: List[str],
+    max_rows: int = 8,
+) -> List[str]:
+    """Render compact ASCII grid for neon style output."""
+    if not items or not columns:
+        return []
+
+    widths: Dict[str, int] = {}
+    for col in columns:
+        sample_values = [str(item.get(col, "")) for item in items[:max_rows]]
+        max_len = (
+            max([len(col)] + [len(v) for v in sample_values])
+            if sample_values
+            else len(col)
+        )
+        widths[col] = min(max(max_len, 8), 36)
+
+    def _sep(char: str = "-") -> str:
+        parts = [char * widths[col] for col in columns]
+        return "+" + "+".join(parts) + "+"
+
+    header = (
+        "|" + "|".join(_fit_cell(col.upper(), widths[col]) for col in columns) + "|"
+    )
+    lines = [_sep("-"), header, _sep("=")]
+
+    for row in items[:max_rows]:
+        lines.append(
+            "|"
+            + "|".join(_fit_cell(row.get(col, ""), widths[col]) for col in columns)
+            + "|"
+        )
+
+    lines.append(_sep("-"))
+    if len(items) > max_rows:
+        lines.append(f"... {len(items) - max_rows} more rows")
+    return lines
+
+
+def _render_pretty_markdown(
+    tool_name: str, arguments: Dict[str, Any], payload: Any
+) -> str:
+    """Render parsed JSON payload as a compact markdown report."""
+    if not isinstance(payload, dict):
+        return f"**{tool_name}**\n\n```json\n{json.dumps(payload, indent=2)}\n```"
+
+    lines = [f"**{tool_name}**"]
+
+    if payload.get("error"):
+        lines.append("status: error")
+        lines.append(f"error: {payload['error']}")
+    elif payload.get("success") is True:
+        lines.append("status: success")
+    else:
+        lines.append("status: ok")
+
+    # Show key metadata first.
+    metadata_keys = ["action", "operation", "type", "domain", "query", "name", "count"]
+    for key in metadata_keys:
+        if key in payload and payload[key] is not None:
+            lines.append(f"{key}: {_truncate_value(payload[key], limit=120)}")
+        elif key in arguments and arguments[key] is not None and key not in {"count"}:
+            lines.append(f"{key}: {_truncate_value(arguments[key], limit=120)}")
+
+    # List previews for common list fields.
+    preview_key = None
+    for candidate in ["results", "memories", "entries", "steps"]:
+        if isinstance(payload.get(candidate), list):
+            preview_key = candidate
+            break
+
+    if preview_key:
+        lines.append("")
+        lines.append(f"{preview_key}:")
+        list_items = [item for item in payload[preview_key] if isinstance(item, dict)]
+        if list_items:
+            lines.extend(_build_table(list_items))
+        else:
+            lines.append(_truncate_value(payload[preview_key], limit=300))
+
+    lines.append("")
+    lines.append("raw_json:")
+    lines.append("```json")
+    lines.append(json.dumps(payload, indent=2))
+    lines.append("```")
+    return "\n".join(lines)
+
+
+def _render_neon_markdown(
+    tool_name: str, arguments: Dict[str, Any], payload: Any
+) -> str:
+    """Render terminal-inspired neon-style ASCII output."""
+    if not isinstance(payload, dict):
+        return f"```text\n[ AXOM NEON PANEL ] {tool_name}\n{_truncate_value(payload, limit=500)}\n```\n\n```json\n{json.dumps(payload, indent=2)}\n```"
+
+    frame_width = 68
+    title = f" AXOM NEON PANEL :: {tool_name} "
+    top = "+" + "-" * frame_width + "+"
+    title_line = "|" + title[:frame_width].ljust(frame_width) + "|"
+    divider = "+" + "=" * frame_width + "+"
+
+    lines = ["```text", top, title_line, divider]
+
+    status = (
+        "error"
+        if payload.get("error")
+        else ("success" if payload.get("success") is True else "ok")
+    )
+    metadata_pairs: List[tuple[str, Any]] = [("status", status)]
+    for key in ["action", "operation", "type", "domain", "query", "name", "count"]:
+        if key in payload and payload[key] is not None:
+            metadata_pairs.append((key, payload[key]))
+        elif key in arguments and arguments[key] is not None and key not in {"count"}:
+            metadata_pairs.append((key, arguments[key]))
+
+    for key, value in metadata_pairs:
+        row = f"{key:<10}: {_truncate_value(value, limit=frame_width - 14)}"
+        lines.append("| " + row.ljust(frame_width - 1) + "|")
+
+    preview_key = None
+    for candidate in ["results", "memories", "entries", "steps"]:
+        if isinstance(payload.get(candidate), list):
+            preview_key = candidate
+            break
+
+    if preview_key:
+        lines.append("|" + "-" * frame_width + "|")
+        heading = f" preview::{preview_key} "
+        lines.append("| " + heading.ljust(frame_width - 1) + "|")
+        list_items = [item for item in payload[preview_key] if isinstance(item, dict)]
+        if list_items:
+            preferred = ["name", "memory_type", "importance", "relevance", "id"]
+            first_keys = list(list_items[0].keys())
+            columns = [col for col in preferred if col in first_keys] or first_keys[:4]
+            grid = _build_ascii_grid(list_items, columns)
+            for gline in grid:
+                lines.append(
+                    "| " + gline[: frame_width - 2].ljust(frame_width - 2) + " |"
+                )
+        else:
+            compact = _truncate_value(payload[preview_key], limit=frame_width - 4)
+            lines.append("| " + compact.ljust(frame_width - 1) + "|")
+
+    if payload.get("error"):
+        err = _truncate_value(payload["error"], limit=frame_width - 12)
+        lines.append("|" + "-" * frame_width + "|")
+        lines.append("| " + f"error_msg: {err}".ljust(frame_width - 1) + "|")
+
+    lines.extend([top, "```", "", "```json", json.dumps(payload, indent=2), "```"])
+    return "\n".join(lines)
+
+
+def _format_tool_result(
+    tool_name: str, arguments: Dict[str, Any], raw_result: str
+) -> str:
+    """Format tool response based on AXOM_TOOL_OUTPUT_STYLE."""
+    style = _get_output_style()
+    if style == "json":
+        return raw_result
+
+    try:
+        payload = json.loads(raw_result)
+    except json.JSONDecodeError:
+        return raw_result
+
+    if style == "pretty":
+        return _render_pretty_markdown(tool_name, arguments, payload)
+    if style == "neon":
+        return _render_neon_markdown(tool_name, arguments, payload)
+
+    # pretty_json default
+    return json.dumps(payload, indent=2)
+
+
+def _normalize_prompt_tag(value: Any) -> str:
+    """Normalize a raw tag value for compact prompt display."""
+    text = str(value).strip().lower().replace(" ", "_")
+    if not text:
+        return ""
+    if len(text) > PROMPT_CONTEXT_LABEL_MAX:
+        return text[: PROMPT_CONTEXT_LABEL_MAX - 3] + "..."
+    return text
+
+
+def _collect_prompt_context_segments(memories: List[Dict[str, Any]]) -> List[str]:
+    """Build compact per-memory context segments from tags only."""
+    segments: List[str] = []
+    for memory in memories:
+        raw_tags = memory.get("tags") or []
+        if not isinstance(raw_tags, list):
+            raw_tags = []
+
+        tags: List[str] = []
+        for raw in raw_tags:
+            tag = _normalize_prompt_tag(raw)
+            if not tag or tag in tags:
+                continue
+            tags.append(tag)
+            if len(tags) >= PROMPT_CONTEXT_TAGS_PER_MEMORY:
+                break
+
+        segments.append(",".join(tags) if tags else "untagged")
+
+    return segments
+
+
+def _collect_prompt_tags(memories: List[Dict[str, Any]]) -> List[str]:
+    """Collect short unique tags from recent memories for search hints."""
+    tags: List[str] = []
+    seen = set()
+
+    for memory in memories:
+        raw_tags = memory.get("tags") or []
+        if not isinstance(raw_tags, list):
+            continue
+        for tag in raw_tags:
+            text = _normalize_prompt_tag(tag)
+            if not text:
+                continue
+            if text in seen:
+                continue
+            seen.add(text)
+            tags.append(text)
+            if len(tags) >= PROMPT_SEARCH_TAG_LIMIT:
+                return tags
+
+    if not tags:
+        return ["recent", "context", "memory"][:PROMPT_SEARCH_TAG_LIMIT]
+    return tags
+
+
+async def _build_prompt_context_banner() -> str:
+    """Build a compact 2-line recent-context banner for prompts."""
+    memories: List[Dict[str, Any]] = []
+    try:
+        db = await get_db_manager()
+        memories = await db.list_memories(limit=PROMPT_RECENT_CONTEXT_LIMIT)
+    except Exception as e:
+        logger.warning(f"Could not load recent context for prompt: {e}")
+
+    recent = memories[:PROMPT_RECENT_CONTEXT_LIMIT]
+    if not recent:
+        return (
+            "|Axom-Context:||none|\n" "|Axom-Memory||Search:||recent||context||memory|"
+        )
+
+    labels = _collect_prompt_context_segments(recent)
+    tags = _collect_prompt_tags(recent)
+
+    context_line = f"|Axom-Context:||{'||'.join(labels)}|"
+    search_line = f"|Axom-Memory||Search:||{'||'.join(tags)}|"
+    return f"{context_line}\n{search_line}"
+
+
 # Resource Templates for MCP protocol
 MEMORY_RESOURCE_TEMPLATE = ResourceTemplate(
     uriTemplate="memory://{name}",
@@ -61,7 +380,7 @@ MEMORY_TAG_RESOURCE_TEMPLATE = ResourceTemplate(
     mimeType="application/json",
 )
 
-LIST_RESOURCES_MEMORY_LIMIT = 7
+LIST_RESOURCES_MEMORY_LIMIT = 3
 
 # Tool annotations for MCP protocol
 TOOL_ANNOTATIONS = {
@@ -472,18 +791,18 @@ async def server_lifespan(server: Server) -> Any:
     cleanup_task = None
     # Support test_server_lifespan_and_main_run which passes None
     srv_for_cleanup = server if server is not None else object()
-    
+
     loop_fn = getattr(srv_for_cleanup, "_periodic_cleanup_loop", _periodic_cleanup_loop)
     # Check if interval is configured
     interval = _get_cleanup_interval_seconds()
     if interval > 0:
-            import inspect
+        import inspect
 
-            sig = inspect.signature(loop_fn)
-            if len(sig.parameters) > 0:
-                cleanup_task = asyncio.create_task(loop_fn(interval))
-            else:
-                cleanup_task = asyncio.create_task(loop_fn())
+        sig = inspect.signature(loop_fn)
+        if len(sig.parameters) > 0:
+            cleanup_task = asyncio.create_task(loop_fn(interval))
+        else:
+            cleanup_task = asyncio.create_task(loop_fn())
 
     yield
 
@@ -554,7 +873,8 @@ def create_server() -> Server:
             else:
                 return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
-            return [TextContent(type="text", text=result)]
+            formatted = _format_tool_result(name, arguments, result)
+            return [TextContent(type="text", text=formatted)]
         except Exception as e:
             logger.error(f"Tool call failed: {name} - {e}")
             return [TextContent(type="text", text=f"Error: {str(e)}")]
@@ -637,6 +957,7 @@ def create_server() -> Server:
     ) -> GetPromptResult:
         """Return prompt messages for a specific prompt."""
         args = arguments or {}
+        context_banner = await _build_prompt_context_banner()
         if name == "memory-workflow":
             task = args.get("task_description", "the task")
             return GetPromptResult(
@@ -645,7 +966,9 @@ def create_server() -> Server:
                         role="user",
                         content=TextContent(
                             type="text",
-                            text=f"""Follow this workflow for: {task}
+                            text=f"""{context_banner}
+
+Follow this workflow for: {task}
 
 1. **SEARCH**: Before starting, search for prior context:
    ```
@@ -691,6 +1014,8 @@ Failure to search creates duplicate work; failure to store loses institutional k
 
 **Error:** {error}
 **Context:** {context}
+
+{context_banner}
 
 Follow these steps:
 

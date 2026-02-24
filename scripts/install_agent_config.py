@@ -125,12 +125,30 @@ def get_registry():
 
 
 def expand_path(path_str: str) -> Path:
-    """Expand ~ and environment variables in path."""
-    expanded = os.path.expanduser(os.path.expandvars(path_str))
-    # On Windows, os.path.expanduser("~") might return C:\Users\User
-    # but some paths might use forward slashes or different separators.
-    # We normalize to ensure consistency.
-    return Path(expanded).resolve()
+    """Expand registry path for the current OS.
+
+    On Windows, many registry paths are expressed as '~/.config/...'
+    for portability. Prefer the equivalent '%APPDATA%/...' path.
+    """
+    candidates = [path_str]
+
+    if os.name == "nt" and path_str.startswith("~/.config/"):
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            suffix = path_str[len("~/.config/") :]
+            candidates.insert(0, os.path.join(appdata, suffix))
+
+    # Prefer first existing candidate. If none exist, use first candidate.
+    first_expanded: Path | None = None
+    for candidate in candidates:
+        expanded = os.path.expanduser(os.path.expandvars(candidate))
+        resolved = Path(expanded).resolve()
+        if first_expanded is None:
+            first_expanded = resolved
+        if resolved.exists():
+            return resolved
+
+    return first_expanded if first_expanded is not None else Path(path_str).resolve()
 
 
 def _has_yaml_frontmatter(content: str) -> bool:

@@ -199,7 +199,7 @@
               "path": "~/.config/opencode/AGENTS.md",
               "format": "marker"
             },
-            "skills": { "path": "~/.config/opencode/skills", "format": "dir" }
+            "skills": { "path": "~/.config/opencode/skills", "format": "dir", "requires_frontmatter": true }
           }
         }
       }

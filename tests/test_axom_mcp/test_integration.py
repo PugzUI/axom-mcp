@@ -109,6 +109,65 @@ async def test_memory_handler_round_trip_with_real_sqlite(tmp_path, monkeypatch)
     await close_db_manager()
 
 
+@pytest.mark.asyncio
+@pytest.mark.integration
+@pytest.mark.database
+async def test_memory_search_recovers_from_stale_fts_index(tmp_path, monkeypatch):
+    """Search should work even if FTS rows are missing for existing memories."""
+    db_path = tmp_path / "integration_stale_fts.db"
+
+    await close_db_manager()
+    monkeypatch.setenv("AXOM_DB_PATH", str(db_path))
+    db = await get_db_manager()
+
+    await db.create_memory(
+        name="integration_stale_fts_20260224",
+        content="Unique token fts_recovery_token_98765",
+        memory_type="long_term",
+    )
+
+    # Simulate a stale index state observed in upgraded databases.
+    await db.conn.execute("DELETE FROM memories_fts")
+    await db.conn.commit()
+
+    fallback_search = json.loads(
+        await handle_memory(
+            {
+                "action": "search",
+                "query": "fts_recovery_token_98765",
+                "limit": 5,
+            }
+        )
+    )
+    assert fallback_search["success"] is True
+    assert fallback_search["count"] >= 1
+
+    # Simulate restart path where ensure_schema should self-heal FTS rows.
+    await db.ensure_schema()
+    async with db.conn.execute("""
+        SELECT COUNT(*)
+        FROM memories m
+        LEFT JOIN memories_fts f ON m.id = f.id
+        WHERE f.id IS NULL
+        """) as cursor:
+        missing_rows = (await cursor.fetchone())[0]
+    assert missing_rows == 0
+
+    healed_search = json.loads(
+        await handle_memory(
+            {
+                "action": "search",
+                "query": "fts_recovery_token_98765",
+                "limit": 5,
+            }
+        )
+    )
+    assert healed_search["success"] is True
+    assert healed_search["count"] >= 1
+
+    await close_db_manager()
+
+
 @pytest.mark.integration
 @pytest.mark.database
 def test_verify_db_script_passes_with_temp_database(tmp_path):
