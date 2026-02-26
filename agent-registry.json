@@ -135,8 +135,7 @@
             "rules": { "path": "~/.codex/AGENTS.md", "format": "marker" },
             "skills": {
               "path": "~/.codex/skills",
-              "format": "dir",
-              "requires_frontmatter": true
+              "format": "dir"
             }
           }
         }
@@ -200,7 +199,7 @@
               "path": "~/.config/opencode/AGENTS.md",
               "format": "marker"
             },
-            "skills": { "path": "~/.config/opencode/skills", "format": "dir", "requires_frontmatter": true }
+            "skills": { "path": "~/.config/opencode/skills", "format": "dir" }
           }
         }
       }

@@ -12,6 +12,13 @@ Format: `## YYYY-MM-DD - <main update>`
 - Validation: 226 tests pass.
 - Docs: Makefile improvements, changelog updated.
 
+## 2026-02-26 - Refactor: simplify skill frontmatter handling
+
+- Removed `requires_frontmatter` config option from agent-registry.json.
+- Simplified install_agent_config.py to always add YAML frontmatter to skills.
+- Skills now always include `name` and `description` in frontmatter for better agent discovery.
+- Validation: lint passes, 226 tests pass.
+
 ## 2026-02-25 - Refactor: stabilize database, install workflow, tests, and docs
 
 - Extracted schema.sql; refactored database and handlers for clearer connection handling and type safety.

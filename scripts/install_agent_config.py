@@ -993,7 +993,6 @@ def install_skills_config(
 ) -> bool:
     """Install Skills configuration."""
     path = expand_path(config_spec.get("path", ""))
-    requires_frontmatter = bool(config_spec.get("requires_frontmatter", False))
 
     if dry_run:
         _print_dry_run(f"Would install Skills to: {path}")
@@ -1011,8 +1010,7 @@ def install_skills_config(
             skill_dir.mkdir(exist_ok=True)
             dest = skill_dir / "SKILL.md"
             content = source.read_text(encoding="utf-8")
-            if requires_frontmatter:
-                content = _ensure_skill_frontmatter(content, skill_name)
+            content = _ensure_skill_frontmatter(content, skill_name)
             dest.write_text(content, encoding="utf-8")
             installed_count += 1
 
