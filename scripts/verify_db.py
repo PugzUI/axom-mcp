@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import os
-import sys
+
+import typer
 
 from axom_mcp.database import close_db_manager, get_db_manager
 
@@ -24,16 +25,27 @@ async def _run() -> int:
 
         missing = sorted(required_tables - names)
         if missing:
-            print(f"[ERROR] Database verification failed for: {db_path}")
-            print(f"[ERROR] Missing schema objects: {', '.join(missing)}")
+            typer.secho(
+                f"[ERROR] Database verification failed for: {db_path}",
+                fg=typer.colors.RED,
+            )
+            typer.secho(
+                f"[ERROR] Missing schema objects: {', '.join(missing)}",
+                fg=typer.colors.RED,
+            )
             return 1
 
-        print(f"[OK] Database verified: {db_path}")
-        print(f"[OK] Schema objects present: {', '.join(sorted(required_tables))}")
+        typer.secho(f"[OK] Database verified: {db_path}", fg=typer.colors.GREEN)
+        typer.secho(
+            f"[OK] Schema objects present: {', '.join(sorted(required_tables))}",
+            fg=typer.colors.GREEN,
+        )
         return 0
     except Exception as exc:
-        print(f"[ERROR] Database verification failed for: {db_path}")
-        print(f"[ERROR] {exc}")
+        typer.secho(
+            f"[ERROR] Database verification failed for: {db_path}", fg=typer.colors.RED
+        )
+        typer.secho(f"[ERROR] {exc}", fg=typer.colors.RED)
         return 1
     finally:
         await close_db_manager()

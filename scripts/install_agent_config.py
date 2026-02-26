@@ -13,6 +13,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import typer
+
 # Markers for single-file configs
 START_MARKER = "<!-- AXOM_AGENT_CONFIG_START -->"
 END_MARKER = "<!-- AXOM_AGENT_CONFIG_END -->"
@@ -28,6 +30,11 @@ SKILLS = {
     "axom-discover": "docs/agents/skills/axom-discover/SKILL.md",
     "axom-analyze": "docs/agents/skills/axom-analyze/SKILL.md",
     "axom-transform": "docs/agents/skills/axom-transform/SKILL.md",
+}
+
+# Cursor subagents: name -> relative path (installed to ~/.cursor/agents/)
+SUBAGENTS = {
+    "axom-agent": "docs/agents/subagent/axom-agent.md",
 }
 
 SKILL_DESCRIPTIONS = {
@@ -53,37 +60,19 @@ SKILL_DESCRIPTIONS = {
     ),
 }
 
-PALETTE = {
-    "header": "\033[38;5;214m",
-    "info": "\033[38;5;221m",
-    "success": "\033[38;5;114m",
-    "warn": "\033[38;5;179m",
-    "error": "\033[38;5;167m",
-    "dry": "\033[38;5;221m",
-    "skip": "\033[38;5;244m",
-}
-RESET = "\033[0m"
-
-
-def _supports_color() -> bool:
-    return (
-        sys.stdout.isatty()
-        and os.environ.get("NO_COLOR") is None
-        and os.environ.get("TERM") != "dumb"
-    )
-
-
-def _colorize(text: str, tone: str) -> str:
-    if not _supports_color():
-        return text
-    color = PALETTE.get(tone)
-    if not color:
-        return text
-    return f"{color}{text}{RESET}"
-
 
 def _print(message: str, tone: str = "info") -> None:
-    print(_colorize(message, tone))
+    colors = {
+        "header": typer.colors.YELLOW,
+        "info": typer.colors.CYAN,
+        "success": typer.colors.GREEN,
+        "warn": typer.colors.YELLOW,
+        "error": typer.colors.RED,
+        "dry": typer.colors.YELLOW,
+        "skip": typer.colors.WHITE,
+    }
+    fg = colors.get(tone, typer.colors.WHITE)
+    typer.secho(message, fg=fg)
 
 
 def _print_header(message: str) -> None:
@@ -237,7 +226,7 @@ def get_ide_installed_extensions(ide_name: str) -> set[str]:
             for cache_path in cache_paths:
                 if cache_path.exists():
                     try:
-                        with open(cache_path, "r", encoding="utf-8") as f:
+                        with open(cache_path, encoding="utf-8") as f:
                             cache_data = json.load(f)
 
                         # The cache has a 'result' array with extension info
@@ -245,7 +234,7 @@ def get_ide_installed_extensions(ide_name: str) -> set[str]:
                             for ext in cache_data["result"]:
                                 if "identifier" in ext and "id" in ext["identifier"]:
                                     installed_extensions.add(ext["identifier"]["id"])
-                    except (json.JSONDecodeError, IOError, KeyError):
+                    except (OSError, json.JSONDecodeError, KeyError):
                         # If we can't parse the cache, continue to next path
                         continue
     else:
@@ -274,7 +263,7 @@ def get_ide_installed_extensions(ide_name: str) -> set[str]:
         for cache_path in cache_paths:
             if cache_path.exists():
                 try:
-                    with open(cache_path, "r", encoding="utf-8") as f:
+                    with open(cache_path, encoding="utf-8") as f:
                         ext_data = json.load(f)
 
                     # VSCode-style extensions.json has an 'extensions' array
@@ -282,7 +271,7 @@ def get_ide_installed_extensions(ide_name: str) -> set[str]:
                         for ext in ext_data["extensions"]:
                             if "id" in ext:
                                 installed_extensions.add(ext["id"])
-                except (json.JSONDecodeError, IOError, KeyError):
+                except (OSError, json.JSONDecodeError, KeyError):
                     continue
 
     return installed_extensions
@@ -296,7 +285,6 @@ def get_database_url(root_path: Path) -> str | None:
 
 def detect_installed_agents(registry: dict, scan: bool = False) -> list[dict]:
     """Detect which agents are installed on the system."""
-    home = Path.home()
     installed = []
 
     for agent_id, agent_data in registry.get("agents", {}).items():
@@ -399,7 +387,6 @@ def detect_installed_agents(registry: dict, scan: bool = False) -> list[dict]:
 
 def scan_for_unregistered_agents(registry: dict) -> list[dict]:
     """Scan system for MCP configs from unregistered agents."""
-    home = Path.home()
     found = []
 
     scan_patterns = registry.get("scan_patterns", {})
@@ -424,7 +411,7 @@ def scan_for_unregistered_agents(registry: dict) -> list[dict]:
                     found.append(agent_info)
 
     # Scan for rules in common locations
-    for rule_name in RULES.keys():
+    for rule_name in RULES:
         for ext in [".md", ".mdc"]:
             # Check local .cursor/rules
             local_rule = Path(".cursor") / "rules" / f"{rule_name}{ext}"
@@ -474,7 +461,7 @@ def scan_for_unregistered_agents(registry: dict) -> list[dict]:
             rules_dir = curr / ".cursor" / "rules"
             if rules_dir.exists() and rules_dir.is_dir():
                 found_any_rule = False
-                for rule_name in RULES.keys():
+                for rule_name in RULES:
                     for ext in [".md", ".mdc"]:
                         if (rules_dir / f"{rule_name}{ext}").exists():
                             found_any_rule = True
@@ -510,8 +497,6 @@ def scan_for_unregistered_agents(registry: dict) -> list[dict]:
             for ext in ext_dir.iterdir():
                 if ext.is_dir() and (ext / "package.json").exists():
                     pkg = json.loads((ext / "package.json").read_text(encoding="utf-8"))
-                    name = pkg.get("name", "")
-                    publisher = pkg.get("publisher", "")
 
                     # Check if it's a known agent extension
                     indicators = scan_patterns.get("agent_indicators", {}).get(
@@ -804,36 +789,26 @@ def get_mcp_config(root_path: Path) -> tuple[str, str, list[str], dict[str, str]
     """Get MCP command and args for the server."""
     server_name = "axom"
 
-    # Check for symlink
-    axom_mcp = root_path / "venv" / "bin" / "axom-mcp"
+    # Prefer venv's axom-mcp via full path (no PATH env needed)
+    venv_bin = root_path / "venv" / ("Scripts" if os.name == "nt" else "bin")
+    venv_axom = venv_bin / ("axom-mcp.exe" if os.name == "nt" else "axom-mcp")
+    if venv_axom.exists():
+        command = str(venv_axom)
+        args = []
+        return server_name, command, args, {}
 
-    # Ensure axom is in PATH by creating a symlink in ~/.local/bin
-    # This is needed because pip install -e . installs to venv/bin which may not be in PATH
     ensure_axom_in_path(root_path)
-
-    # Priority order:
-    # 1. axom-mcp command in PATH (installed package entry point)
-    # 2. axom command in PATH (legacy/global install)
-    # 3. venv/bin/axom-mcp from local project install
-    # 4. python -m axom_mcp.server (last resort)
     if shutil.which("axom-mcp"):
         command = "axom-mcp"
         args = []
     elif shutil.which("axom"):
         command = "axom"
         args = []
-    elif axom_mcp.exists():
-        command = str(axom_mcp)
-        args = []
     else:
-        command = "python"  # Uses PATH, not hardcoded sys.executable
-        args = ["-m", "axom_mcp.server"]
+        command = sys.executable
+        args = ["-m", "axom_mcp"]
 
     env = {}
-    # SQLite is the only supported database.
-    # AXOM_DB_PATH is handled by the server internally.
-    # No need to pass DATABASE_URL anymore.
-
     return server_name, command, args, env
 
 
@@ -942,12 +917,10 @@ def install_rules_config(
                 content = source.read_text(encoding="utf-8")
 
                 # If it's an .mdc file, we need to ensure it has the proper frontmatter
-                if ext == ".mdc":
-                    # Check if it already has frontmatter
-                    if not content.lstrip().startswith("---"):
-                        # Add default frontmatter for .mdc files
-                        frontmatter = "---\ndescription: Axom Agent Rule for knowledge retention and context recall\nglobs: \n---\n"
-                        content = frontmatter + content
+                if ext == ".mdc" and not content.lstrip().startswith("---"):
+                    # Add default frontmatter for .mdc files
+                    frontmatter = "---\ndescription: Axom Agent Rule for knowledge retention and context recall\nglobs: \n---\n"
+                    content = frontmatter + content
 
                 dest.write_text(content, encoding="utf-8")
                 _print(f"  [OK] Updated Rules: {dest}", "success")
@@ -968,7 +941,7 @@ def install_rules_config(
         path.parent.mkdir(parents=True, exist_ok=True)
         existing = path.read_text(encoding="utf-8") if path.exists() else ""
 
-        for rule_name, rel_path in RULES.items():
+        for _rule_name, rel_path in RULES.items():
             source = root_path / rel_path
             if source.exists():
                 content = source.read_text(encoding="utf-8")
@@ -990,6 +963,31 @@ def install_rules_config(
     return True
 
 
+def install_subagents_config(
+    config_spec: dict, root_path: Path, agent_name: str, dry_run: bool = False
+) -> bool:
+    """Install Cursor subagents to user-level ~/.cursor/agents/."""
+    path = expand_path(config_spec.get("path", ""))
+
+    if dry_run:
+        _print_dry_run(f"Would install subagents to: {path}")
+        return True
+
+    path.mkdir(parents=True, exist_ok=True)
+    installed_count = 0
+
+    for agent_name_file, rel_path in SUBAGENTS.items():
+        source = root_path / rel_path
+        if source.exists():
+            dest = path / f"{agent_name_file}.md"
+            content = source.read_text(encoding="utf-8")
+            dest.write_text(content, encoding="utf-8")
+            installed_count += 1
+            _print(f"  [OK] Subagent: {dest}", "success")
+
+    return installed_count > 0
+
+
 def install_skills_config(
     config_spec: dict, root_path: Path, agent_name: str, dry_run: bool = False
 ) -> bool:
@@ -1005,7 +1003,6 @@ def install_skills_config(
 
     total_skills = len(SKILLS)
     installed_count = 0
-    last_dest = ""
 
     for skill_name, rel_path in SKILLS.items():
         source = root_path / rel_path
@@ -1018,7 +1015,6 @@ def install_skills_config(
                 content = _ensure_skill_frontmatter(content, skill_name)
             dest.write_text(content, encoding="utf-8")
             installed_count += 1
-            last_dest = str(dest)
 
     if installed_count > 0:
         # Use the requested format: [X/X] Updated Skills: path/to/skills/axom-<...>/SKILL.md
@@ -1059,6 +1055,10 @@ def install_agent_configs(
     if "skills" in configs:
         install_skills_config(configs["skills"], root_path, agent_name, dry_run)
 
+    # Subagents (Cursor ~/.cursor/agents/)
+    if "agents" in configs:
+        install_subagents_config(configs["agents"], root_path, agent_name, dry_run)
+
 
 def clean_configs(
     registry: dict, custom_server: str | None = None, dry_run: bool = False
@@ -1085,10 +1085,10 @@ def clean_configs(
             configs = variant.get("configs", {})
             agent_header_printed = False
 
-            def _print_agent_header():
+            def _print_agent_header(_agent=agent_name, _variant=variant_id):
                 nonlocal agent_header_printed
                 if not agent_header_printed:
-                    _print_header(f"\n--- {agent_name} [{variant_id.upper()}] ---")
+                    _print_header(f"\n--- {_agent} [{_variant.upper()}] ---")
                     agent_header_printed = True
 
             # 1. Clean MCP Config
@@ -1111,7 +1111,7 @@ def clean_configs(
                                 # Remove all matching keys case-insensitively.
                                 to_remove = [
                                     name
-                                    for name in servers.keys()
+                                    for name in servers
                                     if isinstance(name, str)
                                     and name.lower() == server_name_lower
                                 ]
@@ -1176,12 +1176,11 @@ def clean_configs(
             if "rules" in configs:
                 path = expand_path(configs["rules"].get("path", ""))
                 format_type = configs["rules"].get("format", "flat")
-                ext = configs["rules"].get("ext", ".md")
                 if path.exists():
                     try:
                         if format_type in ["flat", "dir"]:
                             removed_any = False
-                            for rule_name in RULES.keys():
+                            for rule_name in RULES:
                                 # Check for both .md and .mdc extensions
                                 for e in [".md", ".mdc"]:
                                     rule_file = path / f"{rule_name}{e}"
@@ -1214,14 +1213,39 @@ def clean_configs(
                             f"  [ERROR] Failed to clean Rules for {agent_name}: {e}"
                         )
 
-            # 3. Clean Skills
+            # 3. Clean Subagents (Cursor ~/.cursor/agents/)
+            if "agents" in configs:
+                path = expand_path(configs["agents"].get("path", ""))
+                if path.exists():
+                    try:
+                        removed_count = 0
+                        for agent_name_file in SUBAGENTS:
+                            agent_file = path / f"{agent_name_file}.md"
+                            if agent_file.exists():
+                                agent_file.unlink()
+                                removed_count += 1
+                        if removed_count > 0:
+                            _print_agent_header()
+                            _print(
+                                f"  [OK] Removed {removed_count} subagent(s): {path}",
+                                "success",
+                            )
+                            any_cleaned = True
+                        if path.is_dir() and not any(path.iterdir()):
+                            path.rmdir()
+                    except Exception as e:
+                        _print_error(
+                            f"  [ERROR] Failed to clean subagents for {agent_name}: {e}"
+                        )
+
+            # 4. Clean Skills
             if "skills" in configs:
                 path = expand_path(configs["skills"].get("path", ""))
                 if path.exists():
                     try:
                         removed_count = 0
                         total_skills = len(SKILLS)
-                        for skill_name in SKILLS.keys():
+                        for skill_name in SKILLS:
                             skill_dir = path / skill_name
                             if skill_dir.exists() and skill_dir.is_dir():
                                 shutil.rmtree(skill_dir)
@@ -1241,7 +1265,7 @@ def clean_configs(
                             f"  [ERROR] Failed to clean Skills for {agent_name}: {e}"
                         )
 
-    # 4. Clean Cursor Internal History (Orphaned Rules/Skills)
+    # 5. Clean Cursor Internal History (Orphaned Rules/Skills)
     if not dry_run:
         appdata = os.environ.get("APPDATA")
         if appdata:
@@ -1255,7 +1279,7 @@ def clean_configs(
                         )
                         # Check if this history entry refers to any of our rules or skills
                         found_match = False
-                        for rule_name in RULES.keys():
+                        for rule_name in RULES:
                             if (
                                 f"{rule_name}.mdc" in content
                                 or f"{rule_name}.md" in content
@@ -1263,7 +1287,7 @@ def clean_configs(
                                 found_match = True
                                 break
                         if not found_match:
-                            for skill_name in SKILLS.keys():
+                            for skill_name in SKILLS:
                                 if (
                                     f"{skill_name}.md" in content
                                     or f"{skill_name}/SKILL.md" in content
@@ -1275,7 +1299,7 @@ def clean_configs(
                             # Found a reference. Delete the entire history directory for this resource.
                             shutil.rmtree(entries_file.parent)
                             cleaned_history = True
-                    except:
+                    except OSError:
                         continue
                 if cleaned_history:
                     _print(
@@ -1284,9 +1308,7 @@ def clean_configs(
                     any_cleaned = True
 
     if not any_cleaned:
-        _print(
-            f"  {_colorize('[SKIP]', 'skip')} No agent configurations found to clean"
-        )
+        _print("  [SKIP] No agent configurations found to clean", "skip")
 
 
 def install_env_file(root_path: Path, dry_run: bool = False) -> None:

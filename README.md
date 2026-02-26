@@ -23,9 +23,9 @@ Axom runs as **stdio MCP** - your IDE spawns it automatically. No manual server 
 
 ### Installation
 
-#### Linux / macOS / WSL / Windows (Native)
+#### Linux / macOS / WSL / Windows
 
-Requires **Git Bash**, **PowerShell**, or a `make` provider.
+Requires (**Git) Bash**, **PowerShell**, or a `make` provider.
 
 ```bash
 git clone https://github.com/PugzUI/axom-mcp.git
@@ -34,6 +34,7 @@ make install
 ```
 
 **What `make install` does:**
+
 1. Installs Python dependencies.
 2. Installs Axom in editable mode (`pip install -e .`).
 3. Creates `.env` from `.env.example`.
@@ -44,7 +45,23 @@ make install
 
 ```bash
 make test      # Run tests
+make lint      # Run ruff linter
+make format    # Format and fix with ruff
 ```
+
+### Make Help
+
+Project menus (not GNU Make's built-in). Use `-h` or `-help` consistently:
+
+- `**make make-h**` / `**make make-help**` / `**make h**` / `**make help**` — project command menu
+- `**make install-h**` / `**make install-help**` — install options (DRY_RUN, etc.)
+- `**make clean-h**` / `**make clean-help**` — cleanup options
+- `**make agents-h**` / `**make agents-help**` — agent commands
+- `**make db-h**` / `**make db-help**` — database commands
+- `**make test-h**` / `**make test-help**` — test commands
+- `**make lint-h**` / `**make lint-help**` — lint commands
+
+> **Note:** `make -h` and `make install -h` show GNU Make's built-in options, not our menus. Use `make make-h`, `make make-help`, `make h`, or `make help` for the project menu.
 
 ### Post-Install Check
 
@@ -79,9 +96,10 @@ PY
 ## Client Configuration
 
 `make install` automatically configures MCP for detected agents. The installer uses the best available command:
-1. **`axom-mcp`** (if in PATH)
-2. **`axom`** (if in PATH)
-3. **`python -m axom_mcp.server`** (fallback)
+
+1. `**axom-mcp**` (if in PATH)
+2. `**axom**` (if in PATH)
+3. `**python -m axom_mcp.server**` (fallback)
 
 See [docs/agents/INDEX.md](docs/agents/INDEX.md) for detailed agent configuration.
 
@@ -112,11 +130,11 @@ args = []
 
 Axom provides five core MCP tools:
 
-- **`axom_mcp_memory`**: Store and retrieve persistent context.
-- **`axom_mcp_exec`**: File operations and shell commands with chaining.
-- **`axom_mcp_analyze`**: Code analysis and debugging.
-- **`axom_mcp_discover`**: Map environment and capabilities.
-- **`axom_mcp_transform`**: Convert data between formats.
+- `**axom_mcp_memory**`: Store and retrieve persistent context.
+- `**axom_mcp_exec**`: File operations and shell commands with chaining.
+- `**axom_mcp_analyze**`: Code analysis and debugging.
+- `**axom_mcp_discover**`: Map environment and capabilities.
+- `**axom_mcp_transform**`: Convert data between formats.
 
 ---
 
@@ -126,3 +144,4 @@ Axom provides five core MCP tools:
 - [Tool Reference](docs/tools.md) - Detailed tool parameters.
 - [Agent Guide](docs/agents/INDEX.md) - How to use Axom with AI agents.
 - [Troubleshooting](docs/agents/TROUBLESHOOTING.md) - Common issues and fixes.
+

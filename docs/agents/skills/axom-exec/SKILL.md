@@ -7,6 +7,7 @@ Read → transform → write in one call. 3–7 steps ideal.
 
 **Prefer chains over sequential calls.** One `axom_mcp_exec`
 with a `chain` replaces three separate invocations.
+**Before 3+ sequential calls, use one call with chain.** Saves round-trips.
 Use variable substitution (`${_result}`) to pipe data.
 Think pipelines, not scripts.
 

@@ -31,6 +31,7 @@ graph TD
     EXEC --> E1[operation: read]
     EXEC --> E2[operation: write]
     EXEC --> E3[operation: shell]
+    EXEC --> E4[chain: multiple steps]
 
     ANALYZE --> ANALYZE_T[axom_mcp_analyze]
     ANALYZE_T --> A1[type: debug]
@@ -45,6 +46,11 @@ graph TD
     MEM --> M1[action: write]
     MEM --> M2[action: search]
     MEM --> M3[action: list]
+    MEM --> M4[action: associate]
+    MEM --> REFLEX{has_reflex?}
+    M2 --> REFLEX
+    REFLEX -->|Yes| SHORTCUT[Reflex shortcut]
+    REFLEX -->|No| DISCOVER_ACT[Discover then act]
 
     style START fill:#f9f,stroke:#333,stroke-width:2px
     style FIND fill:#bbf,stroke:#333,stroke-width:1px
@@ -123,6 +129,7 @@ Challenges itself, other agents, and users to re-think.
 | :----------------- | :-------------------- | :------------------------------------------------------ |
 | Search & reflect   | `action: "search"`    | `{"action": "search", "query": "auth bug", "limit": 5}` |
 | Store with depth   | `action: "write"`     | Include REFLECTION in content                           |
+| Associate memories | `action: "associate"` | `{"action": "associate", "name": "ref", "target_memory_name": "gotcha"}` |
 | Read specific      | `action: "read"`      | `{"action": "read", "name": "bugfix_xyz_20260203"}`     |
 | List all           | `action: "list"`      | `{"action": "list", "limit": 10}`                       |
 | Delete specific    | `action: "delete"`    | `{"action": "delete", "name": "bugfix_xyz_20260203"}`   |
@@ -134,8 +141,10 @@ Challenges itself, other agents, and users to re-think.
 | Skill                                            | Purpose                                                                          |
 | :----------------------------------------------- | :------------------------------------------------------------------------------- |
 | [axom-memory](skills/axom-memory/SKILL.md)       | Challenges itself, other agents, and users. Re-think, seek optimal. (START HERE) |
+| [axom-reflex](skills/axom-reflex/SKILL.md)       | Reflex shortcut: implement → verify → update on failure.                          |
+| [axom-dispatch](skills/axom-dispatch/SKILL.md)   | Sub-agent dispatch for context gathering. Parallel work.                         |
 | [axom-discover](skills/axom-discover/SKILL.md)   | Map the unknown before you act. Violently effective recon.                       |
-| [axom-exec](skills/axom-exec/SKILL.md)           | Atomic chains. Tool abstraction. Zero wasted steps.                              |
+| [axom-exec](skills/axom-exec/SKILL.md)           | Atomic chains. Tool abstraction. Zero wasted steps.                               |
 | [axom-analyze](skills/axom-analyze/SKILL.md)     | Deep analysis. Actionable output. Memory integration.                            |
 | [axom-transform](skills/axom-transform/SKILL.md) | Format mastery. Pipeline glue. Data flow.                                        |
 
@@ -146,6 +155,8 @@ Challenges itself, other agents, and users to re-think.
 | Doc                                            | Purpose                  |
 | :--------------------------------------------- | :----------------------- |
 | [Rules Reference](rules/axom-rule.md)          | Mandatory agent behavior |
+| Prompts: memory-workflow, debug-session, systematic-debug, complex-problem, code-review, store-pattern | Structured workflows |
+| [Subagent: Axom Context Gatherer](subagent/axom-agent.md) | Context for dispatched subagents |
 | [Architecture Overview](../../architecture.md) | System design            |
 | [Troubleshooting Guide](TROUBLESHOOTING.md)    | Common issues and fixes  |
 

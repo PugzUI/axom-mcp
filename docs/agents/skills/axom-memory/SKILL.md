@@ -28,10 +28,14 @@ search again with different terms. Combinatorial exploration:
 
 ```
 axom_mcp_memory(action="search", query="[domain] [terms]", limit=5)
+→ has_reflex: true? Use reflex shortcut (see axom-reflex)
 → No hits? Refine: synonyms, broader terms, related concepts
 → Some hits? Search associated memories; use tags from results
-→ Still stuck? List dreams: memory_type="dreams"
+→ Still stuck? Search dreams: memory_type="dreams"
+→ Still thin? Web fallback runs automatically
 ```
+
+**Search response:** Includes `has_reflex` (branch without parsing) and `reflection_excerpt` per result (re-think from prior agent).
 
 **Parameters:**
 

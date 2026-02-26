@@ -14,7 +14,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..schemas import ExecInput
 
@@ -54,7 +54,7 @@ def _validate_path(target: str) -> Path:
     raise ValueError(f"Path {target} is outside allowed directories")
 
 
-async def handle_exec(arguments: Dict[str, Any]) -> str:
+async def handle_exec(arguments: dict[str, Any]) -> str:
     """Handle axom_mcp_exec tool calls.
 
     Args:
@@ -118,7 +118,7 @@ async def _handle_read(target: str) -> str:
         return json.dumps({"error": str(e)})
 
 
-async def _handle_write(target: str, data: Optional[str]) -> str:
+async def _handle_write(target: str, data: str | None) -> str:
     """Write data to file."""
     # Check if write operations are allowed (AXOM_READ_ONLY defaults to False)
     if _env_flag_enabled("AXOM_READ_ONLY", default=False):
@@ -172,9 +172,10 @@ async def _handle_shell(command: str) -> str:
 
         try:
             stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=60.0  # 60 second timeout
+                process.communicate(),
+                timeout=60.0,  # 60 second timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             return json.dumps(
                 {
@@ -205,14 +206,14 @@ async def _handle_shell(command: str) -> str:
 class ChainEngine:
     """Engine for executing chain reactions."""
 
-    def __init__(self, handlers: Optional[Dict[str, Any]] = None):
+    def __init__(self, handlers: dict[str, Any] | None = None):
         self.handlers = handlers or {}
 
     async def execute_chain(
         self,
-        initial_result: Dict[str, Any],
-        chain: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        initial_result: dict[str, Any],
+        chain: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Execute a chain of operations."""
         variables = {"_result": initial_result}
         steps = []
@@ -224,16 +225,15 @@ class ChainEngine:
             condition = step.get("condition")
 
             # Check condition
-            if condition:
-                if not self._evaluate_condition(condition, variables):
-                    steps.append(
-                        {
-                            "tool": tool_name,
-                            "skipped": True,
-                            "reason": "Condition not met",
-                        }
-                    )
-                    continue
+            if condition and not self._evaluate_condition(condition, variables):
+                steps.append(
+                    {
+                        "tool": tool_name,
+                        "skipped": True,
+                        "reason": "Condition not met",
+                    }
+                )
+                continue
 
             # Substitute variables in args
             resolved_args = self._substitute_variables(args, variables)
@@ -275,7 +275,7 @@ class ChainEngine:
             "final_result": current_result,
         }
 
-    def _evaluate_condition(self, condition: str, variables: Dict[str, Any]) -> bool:
+    def _evaluate_condition(self, condition: str, variables: dict[str, Any]) -> bool:
         """Evaluate a condition expression."""
         try:
             # Simple condition evaluation
@@ -302,7 +302,7 @@ class ChainEngine:
         except Exception:
             return False
 
-    def _get_variable(self, path: str, variables: Dict[str, Any]) -> Any:
+    def _get_variable(self, path: str, variables: dict[str, Any]) -> Any:
         """Get a variable value by path."""
         parts = path.split(".")
         value: Any = variables
@@ -313,7 +313,7 @@ class ChainEngine:
                 return None
         return value
 
-    def _substitute_variables(self, obj: Any, variables: Dict[str, Any]) -> Any:
+    def _substitute_variables(self, obj: Any, variables: dict[str, Any]) -> Any:
         """Substitute ${var} patterns in object."""
         if isinstance(obj, str):
             result = obj

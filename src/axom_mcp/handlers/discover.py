@@ -15,7 +15,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from ..database import get_db_manager
 from ..schemas import DiscoverInput
@@ -51,7 +51,7 @@ def _validate_path(target: str) -> Path:
     raise ValueError(f"Path {target} is outside allowed directories")
 
 
-async def handle_discover(arguments: Dict[str, Any]) -> str:
+async def handle_discover(arguments: dict[str, Any]) -> str:
     """Handle axom_mcp_discover tool calls.
 
     Args:
@@ -86,10 +86,10 @@ async def handle_discover(arguments: Dict[str, Any]) -> str:
 
 
 async def _discover_files(
-    filter_criteria: Dict[str, Any], limit: int, recursive: bool
+    filter_criteria: dict[str, Any], limit: int, recursive: bool
 ) -> str:
     """Discover files in allowed directories."""
-    results: List[Dict[str, Any]] = []
+    results: list[dict[str, Any]] = []
     pattern = filter_criteria.get("pattern", "*")
     file_type = filter_criteria.get("type", "all")  # file, directory, all
     base_path = filter_criteria.get("path", os.getcwd())
@@ -111,10 +111,7 @@ async def _discover_files(
         # Check type
         if file_type == "file" and not path.is_file():
             return False
-        if file_type == "directory" and not path.is_dir():
-            return False
-
-        return True
+        return not (file_type == "directory" and not path.is_dir())
 
     try:
         if recursive:
@@ -402,7 +399,7 @@ async def _discover_capabilities() -> str:
 
 
 async def _discover_all(
-    filter_criteria: Dict[str, Any], limit: int, recursive: bool
+    filter_criteria: dict[str, Any], limit: int, recursive: bool
 ) -> str:
     """Comprehensive discovery across all domains."""
     results = {}

@@ -17,9 +17,8 @@ from mcp.types import (
 
 from axom_mcp import server
 from axom_mcp.database import DatabaseManager, close_db_manager, get_db_manager
-from axom_mcp.handlers import analyze, discover
+from axom_mcp.handlers import analyze, discover, memory, transform
 from axom_mcp.handlers import exec as exec_handler
-from axom_mcp.handlers import memory, transform
 
 
 @pytest.mark.asyncio
@@ -795,9 +794,8 @@ async def test_database_remaining_parse_and_close_paths(tmp_path, monkeypatch):
     # create nested association with invalid nested json branch
     await db.add_association(a, b)
     await db.conn.execute(
-        'UPDATE memories SET associated_memories = \'["%s", "%s"]\' WHERE id = ?'
-        % (b, c),
-        (a,),
+        "UPDATE memories SET associated_memories = ? WHERE id = ?",
+        (json.dumps([b, c]), a),
     )
     await db.conn.execute(
         "UPDATE memories SET associated_memories = '{bad' WHERE id = ?", (b,)

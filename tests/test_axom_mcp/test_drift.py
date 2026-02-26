@@ -166,9 +166,9 @@ class TestToolInterfaceDrift:
 
         expected = {"action"}
 
-        assert (
-            required == expected
-        ), f"Memory tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        assert required == expected, (
+            f"Memory tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        )
 
     @pytest.mark.drift
     def test_exec_tool_required_fields_unchanged(self):
@@ -180,9 +180,9 @@ class TestToolInterfaceDrift:
 
         expected = {"operation", "target"}
 
-        assert (
-            required == expected
-        ), f"Exec tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        assert required == expected, (
+            f"Exec tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        )
 
     @pytest.mark.drift
     def test_analyze_tool_required_fields_unchanged(self):
@@ -194,9 +194,9 @@ class TestToolInterfaceDrift:
 
         expected = {"type", "target"}
 
-        assert (
-            required == expected
-        ), f"Analyze tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        assert required == expected, (
+            f"Analyze tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        )
 
     @pytest.mark.drift
     def test_discover_tool_required_fields_unchanged(self):
@@ -208,9 +208,9 @@ class TestToolInterfaceDrift:
 
         expected = {"domain"}
 
-        assert (
-            required == expected
-        ), f"Discover tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        assert required == expected, (
+            f"Discover tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        )
 
     @pytest.mark.drift
     def test_transform_tool_required_fields_unchanged(self):
@@ -222,9 +222,9 @@ class TestToolInterfaceDrift:
 
         expected = {"input", "output_format"}
 
-        assert (
-            required == expected
-        ), f"Transform tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        assert required == expected, (
+            f"Transform tool required fields drifted!\n  Expected: {expected}\n  Actual: {required}"
+        )
 
 
 # ============================================================================
@@ -284,9 +284,9 @@ class TestHandlerBehaviorDrift:
 
         # Check expected structure
         assert "success" in data, "Transform result missing 'success' field"
-        assert (
-            "output_format" in data or "format" in data
-        ), "Transform result missing format information"
+        assert "output_format" in data or "format" in data, (
+            "Transform result missing format information"
+        )
 
     @pytest.mark.drift
     @pytest.mark.asyncio
@@ -297,9 +297,9 @@ class TestHandlerBehaviorDrift:
         result = await handle_discover({"domain": "tools"})
 
         # Result should contain tool information
-        assert (
-            "tools" in result or "results" in result
-        ), "Discover tools result missing tool list"
+        assert "tools" in result or "results" in result, (
+            "Discover tools result missing tool list"
+        )
 
 
 # ============================================================================
@@ -429,9 +429,9 @@ class TestAnnotationDrift:
         expected_tools = {"memory", "exec", "analyze", "discover", "transform"}
         actual_tools = set(TOOL_ANNOTATIONS.keys())
 
-        assert (
-            actual_tools == expected_tools
-        ), f"Tool annotations drifted!\n  Expected: {expected_tools}\n  Actual: {actual_tools}"
+        assert actual_tools == expected_tools, (
+            f"Tool annotations drifted!\n  Expected: {expected_tools}\n  Actual: {actual_tools}"
+        )
 
     @pytest.mark.drift
     def test_annotation_structure_unchanged(self):
@@ -508,9 +508,9 @@ class TestIntegrationDrift:
         expected_exports = {"create_server", "main", "run_server", "__version__"}
         actual_exports = set(axom_mcp.__all__)
 
-        assert (
-            actual_exports == expected_exports
-        ), f"Module exports drifted!\n  Expected: {expected_exports}\n  Actual: {actual_exports}"
+        assert actual_exports == expected_exports, (
+            f"Module exports drifted!\n  Expected: {expected_exports}\n  Actual: {actual_exports}"
+        )
 
     @pytest.mark.drift
     def test_handlers_module_structure(self):
@@ -528,9 +528,9 @@ class TestIntegrationDrift:
         actual_exports = set(dir(handlers))
 
         for handler in expected_handlers:
-            assert (
-                handler in actual_exports
-            ), f"Handler '{handler}' not found in handlers module!"
+            assert handler in actual_exports, (
+                f"Handler '{handler}' not found in handlers module!"
+            )
 
     @pytest.mark.drift
     def test_resource_templates_exist(self):

@@ -15,14 +15,14 @@ import io
 import json
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..schemas import TransformInput
 
 logger = logging.getLogger(__name__)
 
 
-async def handle_transform(arguments: Dict[str, Any]) -> str:
+async def handle_transform(arguments: dict[str, Any]) -> str:
     """Handle axom_mcp_transform tool calls.
 
     Args:
@@ -145,8 +145,8 @@ def _parse_input(input_str: str, input_format: str) -> Any:
 
 def _parse_simple_yaml(yaml_str: str) -> Any:
     """Simple YAML parser for basic structures."""
-    result: Dict[str, Any] = {}
-    current_key: Optional[str] = None
+    result: dict[str, Any] = {}
+    current_key: str | None = None
 
     for line in yaml_str.split("\n"):
         stripped = line.strip()
@@ -170,9 +170,12 @@ def _parse_simple_yaml(yaml_str: str) -> Any:
                     parsed_value = int(val_str)
                 elif val_str.replace(".", "").isdigit():
                     parsed_value = float(val_str)
-                elif val_str.startswith('"') and val_str.endswith('"'):
-                    parsed_value = val_str[1:-1]
-                elif val_str.startswith("'") and val_str.endswith("'"):
+                elif (
+                    val_str.startswith('"')
+                    and val_str.endswith('"')
+                    or val_str.startswith("'")
+                    and val_str.endswith("'")
+                ):
                     parsed_value = val_str[1:-1]
 
                 result[key] = parsed_value
@@ -191,9 +194,9 @@ def _parse_simple_yaml(yaml_str: str) -> Any:
     return result
 
 
-def _parse_markdown(md_str: str) -> Dict[str, Any]:
+def _parse_markdown(md_str: str) -> dict[str, Any]:
     """Parse markdown to structured data."""
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "sections": [],
         "headers": [],
         "lists": [],
@@ -201,9 +204,9 @@ def _parse_markdown(md_str: str) -> Dict[str, Any]:
         "links": [],
     }
 
-    current_section: Dict[str, Any] = {"title": None, "content": [], "level": 0}
+    current_section: dict[str, Any] = {"title": None, "content": [], "level": 0}
     in_code_block = False
-    code_content: List[str] = []
+    code_content: list[str] = []
     code_language = None
 
     for line in md_str.split("\n"):
@@ -310,7 +313,7 @@ def _detect_language(code: str) -> str:
     return "unknown"
 
 
-def _apply_rule(data: Any, rule: Dict[str, Any]) -> Any:
+def _apply_rule(data: Any, rule: dict[str, Any]) -> Any:
     """Apply a transformation rule to data."""
     rule_type = rule.get("type")
 
@@ -345,7 +348,7 @@ def _apply_rule(data: Any, rule: Dict[str, Any]) -> Any:
         agg_func = rule.get("function", "count")
 
         if isinstance(data, list) and group_by:
-            groups: Dict[Any, List[Dict[str, Any]]] = {}
+            groups: dict[Any, list[dict[str, Any]]] = {}
             for item in data:
                 key = item.get(group_by)
                 if key not in groups:
@@ -365,9 +368,7 @@ def _apply_rule(data: Any, rule: Dict[str, Any]) -> Any:
     return data
 
 
-def _format_output(
-    data: Any, output_format: str, template: Optional[str] = None
-) -> str:
+def _format_output(data: Any, output_format: str, template: str | None = None) -> str:
     """Format Python object to output format."""
     if output_format == "json":
         return json.dumps(data, indent=2, default=str)
@@ -443,7 +444,7 @@ def _format_csv(data: Any) -> str:
     return output.getvalue()
 
 
-def _format_markdown(data: Any, template: Optional[str] = None) -> str:
+def _format_markdown(data: Any, template: str | None = None) -> str:
     """Format data as Markdown."""
     if template:
         # Simple template substitution

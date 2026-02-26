@@ -6,12 +6,24 @@ MCP Python SDK with @mcp.tool() decorator for tool registration.
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env from project root (cwd or parent of package)
+for candidate in [Path.cwd(), Path(__file__).resolve().parent.parent.parent]:
+    env_path = candidate / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+        break
+
 import asyncio
+import contextlib
 import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -70,7 +82,7 @@ def _truncate_value(value: Any, limit: int = 80) -> str:
     return text
 
 
-def _build_table(items: List[Dict[str, Any]], max_rows: int = 8) -> List[str]:
+def _build_table(items: list[dict[str, Any]], max_rows: int = 8) -> list[str]:
     """Render a compact markdown table preview for list payloads."""
     if not items:
         return []
@@ -85,7 +97,7 @@ def _build_table(items: List[Dict[str, Any]], max_rows: int = 8) -> List[str]:
 
     header = "| " + " | ".join(columns) + " |"
     separator = "| " + " | ".join(["---"] * len(columns)) + " |"
-    rows: List[str] = [header, separator]
+    rows: list[str] = [header, separator]
 
     for row in items[:max_rows]:
         cells = [_truncate_value(row.get(col, "")) for col in columns]
@@ -103,15 +115,15 @@ def _fit_cell(value: Any, width: int) -> str:
 
 
 def _build_ascii_grid(
-    items: List[Dict[str, Any]],
-    columns: List[str],
+    items: list[dict[str, Any]],
+    columns: list[str],
     max_rows: int = 8,
-) -> List[str]:
+) -> list[str]:
     """Render compact ASCII grid for neon style output."""
     if not items or not columns:
         return []
 
-    widths: Dict[str, int] = {}
+    widths: dict[str, int] = {}
     for col in columns:
         sample_values = [str(item.get(col, "")) for item in items[:max_rows]]
         max_len = (
@@ -144,7 +156,7 @@ def _build_ascii_grid(
 
 
 def _render_pretty_markdown(
-    tool_name: str, arguments: Dict[str, Any], payload: Any
+    tool_name: str, arguments: dict[str, Any], payload: Any
 ) -> str:
     """Render parsed JSON payload as a compact markdown report."""
     if not isinstance(payload, dict):
@@ -193,7 +205,7 @@ def _render_pretty_markdown(
 
 
 def _render_neon_markdown(
-    tool_name: str, arguments: Dict[str, Any], payload: Any
+    tool_name: str, arguments: dict[str, Any], payload: Any
 ) -> str:
     """Render terminal-inspired neon-style ASCII output."""
     if not isinstance(payload, dict):
@@ -212,7 +224,7 @@ def _render_neon_markdown(
         if payload.get("error")
         else ("success" if payload.get("success") is True else "ok")
     )
-    metadata_pairs: List[tuple[str, Any]] = [("status", status)]
+    metadata_pairs: list[tuple[str, Any]] = [("status", status)]
     for key in ["action", "operation", "type", "domain", "query", "name", "count"]:
         if key in payload and payload[key] is not None:
             metadata_pairs.append((key, payload[key]))
@@ -257,7 +269,7 @@ def _render_neon_markdown(
 
 
 def _format_tool_result(
-    tool_name: str, arguments: Dict[str, Any], raw_result: str
+    tool_name: str, arguments: dict[str, Any], raw_result: str
 ) -> str:
     """Format tool response based on AXOM_TOOL_OUTPUT_STYLE."""
     style = _get_output_style()
@@ -288,15 +300,15 @@ def _normalize_prompt_tag(value: Any) -> str:
     return text
 
 
-def _collect_prompt_context_segments(memories: List[Dict[str, Any]]) -> List[str]:
+def _collect_prompt_context_segments(memories: list[dict[str, Any]]) -> list[str]:
     """Build compact per-memory context segments from tags only."""
-    segments: List[str] = []
+    segments: list[str] = []
     for memory in memories:
         raw_tags = memory.get("tags") or []
         if not isinstance(raw_tags, list):
             raw_tags = []
 
-        tags: List[str] = []
+        tags: list[str] = []
         for raw in raw_tags:
             tag = _normalize_prompt_tag(raw)
             if not tag or tag in tags:
@@ -310,9 +322,9 @@ def _collect_prompt_context_segments(memories: List[Dict[str, Any]]) -> List[str
     return segments
 
 
-def _collect_prompt_tags(memories: List[Dict[str, Any]]) -> List[str]:
+def _collect_prompt_tags(memories: list[dict[str, Any]]) -> list[str]:
     """Collect short unique tags from recent memories for search hints."""
-    tags: List[str] = []
+    tags: list[str] = []
     seen = set()
 
     for memory in memories:
@@ -337,7 +349,7 @@ def _collect_prompt_tags(memories: List[Dict[str, Any]]) -> List[str]:
 
 async def _build_prompt_context_banner() -> str:
     """Build a compact 2-line recent-context banner for prompts."""
-    memories: List[Dict[str, Any]] = []
+    memories: list[dict[str, Any]] = []
     try:
         db = await get_db_manager()
         memories = await db.list_memories(limit=PROMPT_RECENT_CONTEXT_LIMIT)
@@ -346,9 +358,7 @@ async def _build_prompt_context_banner() -> str:
 
     recent = memories[:PROMPT_RECENT_CONTEXT_LIMIT]
     if not recent:
-        return (
-            "|Axom-Context:||none|\n" "|Axom-Memory||Search:||recent||context||memory|"
-        )
+        return "|Axom-Context:||none|\n|Axom-Memory||Search:||recent||context||memory|"
 
     labels = _collect_prompt_context_segments(recent)
     tags = _collect_prompt_tags(recent)
@@ -437,14 +447,15 @@ Actions:
 - write: Store a new memory
 - read: Retrieve a specific memory by name
 - list: List memories with optional filters
-- search: Full-text search across memories
-- delete: Remove a memory by name""",
+- search: Full-text search across memories (returns has_reflex, reflection_excerpt)
+- delete: Remove a memory by name
+- associate: Link two memories (name + target_memory_name)""",
         inputSchema={
             "type": "object",
             "properties": {
                 "action": {
                     "type": "string",
-                    "enum": ["read", "write", "list", "search", "delete"],
+                    "enum": ["read", "write", "list", "search", "delete", "associate"],
                     "description": "Memory operation to perform",
                 },
                 "name": {
@@ -473,6 +484,10 @@ Actions:
                 "query": {
                     "type": "string",
                     "description": "Search query (required for search)",
+                },
+                "target_memory_name": {
+                    "type": "string",
+                    "description": "Target memory name for associate action",
                 },
                 "limit": {
                     "type": "integer",
@@ -709,60 +724,87 @@ Use chain parameter to continue processing transformed data.""",
 PROMPTS = [
     Prompt(
         name="memory-workflow",
-        description="Standard workflow for memory-driven task execution. Use at the start of every task.",
+        description="Standard workflow for memory-driven task execution. Use at the start of every task. Infer task from user message.",
         arguments=[
             PromptArgument(
                 name="task_description",
-                description="Description of the task to perform",
-                required=True,
+                description="Optional: override inferred task (agent infers from conversation if omitted)",
+                required=False,
             ),
         ],
     ),
     Prompt(
         name="debug-session",
-        description="Start a structured debugging session with memory persistence.",
+        description="Start a structured debugging session with memory persistence. Infer error and context from user message.",
         arguments=[
             PromptArgument(
                 name="error_description",
-                description="Description of the error or issue",
-                required=True,
+                description="Optional: override inferred error (agent infers from conversation if omitted)",
+                required=False,
             ),
             PromptArgument(
                 name="context",
-                description="Additional context (file paths, logs, etc.)",
+                description="Optional: override inferred context (agent infers from conversation if omitted)",
                 required=False,
             ),
         ],
     ),
     Prompt(
         name="code-review",
-        description="Perform a comprehensive code review and store findings.",
+        description="Perform a comprehensive code review and store findings. Infer target and focus from user message.",
         arguments=[
             PromptArgument(
                 name="target_path",
-                description="Path to the file or directory to review",
-                required=True,
+                description="Optional: override inferred path (agent infers from conversation if omitted)",
+                required=False,
             ),
             PromptArgument(
                 name="focus_area",
-                description="Specific focus area (security, performance, etc.)",
+                description="Optional: override inferred focus (agent infers from conversation if omitted)",
+                required=False,
+            ),
+        ],
+    ),
+    Prompt(
+        name="systematic-debug",
+        description="Structured debugging: root cause first, then fix. NO FIXES without Phase 1. Infer error and context from user message.",
+        arguments=[
+            PromptArgument(
+                name="error_description",
+                description="Optional: override inferred error (agent infers from conversation if omitted)",
+                required=False,
+            ),
+            PromptArgument(
+                name="context",
+                description="Optional: override inferred context (agent infers from conversation if omitted)",
+                required=False,
+            ),
+        ],
+    ),
+    Prompt(
+        name="complex-problem",
+        description="For complex problems with thin context: dispatch subagent to gather context in parallel. Infer topic from user message.",
+        arguments=[
+            PromptArgument(
+                name="topic",
+                description="Optional: override inferred topic (agent infers from conversation if omitted)",
                 required=False,
             ),
         ],
     ),
     Prompt(
         name="store-pattern",
-        description="Store a discovered pattern or best practice for future reference.",
+        description="Store a discovered pattern or best practice for future reference. Infer pattern name and description from user message.",
         arguments=[
             PromptArgument(
                 name="pattern_name",
-                description="Name for the pattern",
-                required=True,
+                description="Optional: override inferred name (agent infers from conversation if omitted)",
+                required=False,
             ),
             PromptArgument(
                 name="description",
-                description="Description of the pattern",
-                required=True,
+                description="Optional: override inferred description (agent infers from conversation if omitted)",
+                required=False,
             ),
             PromptArgument(
                 name="code_example",
@@ -809,10 +851,8 @@ async def server_lifespan(server: Server) -> Any:
     # Shutdown: Close database connection
     if cleanup_task:
         cleanup_task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await cleanup_task
-        except asyncio.CancelledError:
-            pass
 
     await close_db_manager()
     logger.info("Database connection closed")
@@ -852,12 +892,12 @@ def create_server() -> Server:
     )
 
     @server.list_tools()
-    async def list_tools() -> List[Tool]:
+    async def list_tools() -> list[Tool]:
         """Return list of available tools."""
         return TOOLS
 
     @server.call_tool()
-    async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
+    async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         """Handle tool calls."""
         try:
             if name == "axom_mcp_memory":
@@ -880,7 +920,7 @@ def create_server() -> Server:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     @server.list_resources()
-    async def list_resources() -> List[Resource]:
+    async def list_resources() -> list[Resource]:
         """List all available memory resources."""
         try:
             db = await get_db_manager()
@@ -901,7 +941,7 @@ def create_server() -> Server:
             return []
 
     @server.list_resource_templates()
-    async def list_resource_templates() -> List[ResourceTemplate]:
+    async def list_resource_templates() -> list[ResourceTemplate]:
         """List resource templates for dynamic resources."""
         return [
             MEMORY_RESOURCE_TEMPLATE,
@@ -947,19 +987,22 @@ def create_server() -> Server:
         raise ValueError(f"Unknown resource URI: {uri}")
 
     @server.list_prompts()
-    async def list_prompts() -> List[Prompt]:
+    async def list_prompts() -> list[Prompt]:
         """Return list of available prompts."""
         return PROMPTS
 
     @server.get_prompt()
     async def get_prompt(
-        name: str, arguments: Optional[Dict[str, str]] = None
+        name: str, arguments: dict[str, str] | None = None
     ) -> GetPromptResult:
         """Return prompt messages for a specific prompt."""
         args = arguments or {}
         context_banner = await _build_prompt_context_banner()
         if name == "memory-workflow":
-            task = args.get("task_description", "the task")
+            task = (
+                args.get("task_description")
+                or "the task (infer from the user's message)"
+            )
             return GetPromptResult(
                 messages=[
                     PromptMessage(
@@ -974,15 +1017,28 @@ Follow this workflow for: {task}
    ```
    axom_mcp_memory(action="search", query="relevant keywords")
    ```
+   - If `has_reflex: true`: implement from reflex, verify (run e.g. `make test`, `pytest path/to/test.py`). If verify fails: edit reflex or associate gotcha, then escalate.
+   - If thin: search `memory_type="dreams"`; web fallback runs automatically.
+   - Use `reflection_excerpt` in results to re-think.
 
-2. **EXECUTE**: Perform the task using available tools.
+2. **DISCOVER** (before acting): `axom_mcp_discover(domain="all")` to map environment.
 
-3. **STORE**: After completion, store key insights:
+3. **EXECUTE**: Perform the task. Use `chain` for 3+ sequential steps. Example: read→analyze→store:
+   ```
+   axom_mcp_exec(operation="read", target="file.py", chain=[
+     {{"tool": "axom_mcp_analyze", "args": {{"type": "review", "target": "${{_result}}"}}}},
+     {{"tool": "axom_mcp_memory", "args": {{"action": "write", "name": "review_file_YYYYMMDD", "content": "${{_result}}"}}}}
+   ])
+   ```
+
+4. **VERIFY**: Before claiming done, run the verification command (e.g. `make test`, `pytest path/to/test.py`). Evidence before claims.
+
+5. **STORE**: After completion, store key insights with REFLECTION:
    ```
    axom_mcp_memory(
        action="write",
        name="[type]_[descriptor]_[YYYYMMDD]",
-       content="TASK|APPROACH|OUTCOME|GOTCHAS|RELATED",
+       content="TASK|APPROACH|OUTCOME|GOTCHAS|REFLECTION: ...|RELATED",
        memory_type="long_term",
        importance="high",
        tags=["relevant", "tags"]
@@ -1002,8 +1058,14 @@ Failure to search creates duplicate work; failure to store loses institutional k
             )
 
         elif name == "debug-session":
-            error = args.get("error_description", "unknown error")
-            context = args.get("context", "no additional context")
+            error = (
+                args.get("error_description")
+                or "the error (infer from the user's message)"
+            )
+            context = (
+                args.get("context")
+                or "relevant context (infer from the user's message)"
+            )
             return GetPromptResult(
                 messages=[
                     PromptMessage(
@@ -1023,13 +1085,21 @@ Follow these steps:
    ```
    axom_mcp_memory(action="search", query="error {error}")
    ```
+   If `has_reflex: true`: implement from reflex, verify, update on failure.
 
-2. **Analyze the code:**
+2. **Discover** files: `axom_mcp_discover(domain="files", filter={{"pattern": "*.py"}})`
+
+3. **Read → Analyze → Store** (chain when you have the file path):
    ```
-   axom_mcp_analyze(type="debug", target="relevant_file.py", focus="error")
+   axom_mcp_exec(operation="read", target="relevant_file.py", chain=[
+     {{"tool": "axom_mcp_analyze", "args": {{"type": "debug", "target": "${{_result}}", "focus": "error"}}}},
+     {{"tool": "axom_mcp_memory", "args": {{"action": "write", "name": "debug_issue_YYYYMMDD", "content": "ERROR|INVESTIGATION|${{_result}}"}}}}
+   ])
    ```
 
-3. **Document findings:**
+4. **Verify** before claiming done: run e.g. `make test`, `pytest path/to/test.py`.
+
+5. **Document findings** (if not already stored via chain):
    ```
    axom_mcp_memory(
        action="write",
@@ -1040,7 +1110,7 @@ Follow these steps:
    )
    ```
 
-4. **If resolved, promote to reflex:**
+6. **If resolved, promote to reflex:**
    ```
    axom_mcp_memory(
        action="write",
@@ -1056,8 +1126,14 @@ Follow these steps:
             )
 
         elif name == "code-review":
-            target = args.get("target_path", "the code")
-            focus = args.get("focus_area", "general quality")
+            target = (
+                args.get("target_path")
+                or "the target (infer path from the user's message)"
+            )
+            focus = (
+                args.get("focus_area")
+                or "focus area (infer from the user's message, or general quality)"
+            )
             return GetPromptResult(
                 messages=[
                     PromptMessage(
@@ -1070,34 +1146,17 @@ Focus area: {focus}
 
 Steps:
 
-1. **Discover the codebase:**
+1. **Discover** the codebase: `axom_mcp_discover(domain="files", filter={{"pattern": "*.py"}}, recursive=true)`
+
+2. **Read → Analyze → Store** (chain when possible):
    ```
-   axom_mcp_discover(domain="files", filter={{"pattern": "*.py"}}, recursive=true)
+   axom_mcp_exec(operation="read", target="{target}", chain=[
+     {{"tool": "axom_mcp_analyze", "args": {{"type": "review", "target": "${{_result}}", "focus": "{focus}", "depth": "high", "output_format": "detailed"}}}},
+     {{"tool": "axom_mcp_memory", "args": {{"action": "write", "name": "review_component_YYYYMMDD", "content": "COMPONENT|ISSUES|RECOMMENDATIONS|${{_result}}", "memory_type": "short_term", "tags": ["review", "{focus}"]}}}}
+   ])
    ```
 
-2. **Analyze the code:**
-   ```
-   axom_mcp_analyze(
-       type="review",
-       target="{target}",
-       focus="{focus}",
-       depth="high",
-       output_format="detailed"
-   )
-   ```
-
-3. **Store review findings:**
-   ```
-   axom_mcp_memory(
-       action="write",
-       name="review_[component]_[YYYYMMDD]",
-       content="COMPONENT|ISSUES|RECOMMENDATIONS|PRIORITY",
-       memory_type="short_term",
-       tags=["review", "{focus}"]
-   )
-   ```
-
-4. **If critical issues found, create reflex:**
+3. **If critical issues found, create reflex:**
    ```
    axom_mcp_memory(
        action="write",
@@ -1112,17 +1171,94 @@ Steps:
                 ],
             )
 
-        elif name == "store-pattern":
-            pattern_name = args.get("pattern_name", "unnamed")
-            description = args.get("description", "")
-            code_example = args.get("code_example", "")
+        elif name == "systematic-debug":
+            error = (
+                args.get("error_description")
+                or "the error (infer from the user's message)"
+            )
+            context = (
+                args.get("context")
+                or "relevant context (infer from the user's message)"
+            )
             return GetPromptResult(
                 messages=[
                     PromptMessage(
                         role="user",
                         content=TextContent(
                             type="text",
-                            text=f"""Store this pattern for future reference:
+                            text=f"""Systematic debugging for: {error}
+Context: {context}
+
+{context_banner}
+
+**NO FIXES without Phase 1.** Follow strictly:
+
+**Phase 1: Root cause**
+- Reproduce the error. What exactly fails?
+- Search memory: axom_mcp_memory(action="search", query="error {error}")
+- Discover relevant files: axom_mcp_discover(domain="files")
+- Analyze: axom_mcp_analyze(type="debug", target="file.py", focus="root cause")
+- Document: What is the actual root cause? (Not symptoms.)
+
+**Phase 2: Pattern**
+- Is this a known pattern? Check reflex/dreams in search results.
+- What similar issues exist in memory?
+
+**Phase 3: Hypothesis**
+- Form a hypothesis: "If we change X, then Y should fix it."
+- One hypothesis at a time. Test before next.
+
+**Phase 4: Fix**
+- Only after Phases 1–3 are complete.
+- Implement fix. Verify: run e.g. make test, pytest path/to/test.py
+- Store with REFLECTION: axom_mcp_memory(action="write", ...)""",
+                        ),
+                    ),
+                ],
+            )
+
+        elif name == "complex-problem":
+            topic = args.get("topic") or "the problem (infer from the user's message)"
+            return GetPromptResult(
+                messages=[
+                    PromptMessage(
+                        role="user",
+                        content=TextContent(
+                            type="text",
+                            text=f"""Complex problem: {topic}
+
+1. **Dispatch subagent first** (runs in parallel). Pass docs/agents/subagent/axom-agent.md as context.
+   Prompt: "Gather context for {topic}. Return context envelope."
+   Use mcp_task with attachments: [docs/agents/subagent/axom-agent.md]
+
+2. **Main agent:** discover, read, analyze while subagent runs.
+
+3. **At combine step:** Wait for subagent (timeout ~60-120s). If timeout, proceed with partial context.
+
+4. **Combine** memory_hits + dreams + web_snippets + distilled_summary. Synthesize solution.
+
+5. **Store** with REFLECTION.""",
+                        ),
+                    ),
+                ],
+            )
+
+        elif name == "store-pattern":
+            pattern_name = args.get("pattern_name") or "[infer from user message]"
+            description = args.get("description") or "[infer from user message]"
+            code_example = args.get("code_example") or ""
+            name_slug = (
+                pattern_name.replace(" ", "_").replace("[", "").replace("]", "")
+                if pattern_name != "[infer from user message]"
+                else "inferred_name"
+            )
+            return GetPromptResult(
+                messages=[
+                    PromptMessage(
+                        role="user",
+                        content=TextContent(
+                            type="text",
+                            text=f"""Store this pattern for future reference. Infer name and description from the user's message if not provided.
 
 **Name:** {pattern_name}
 **Description:** {description}
@@ -1132,13 +1268,15 @@ Store as a long-term memory:
 ```
 axom_mcp_memory(
     action="write",
-    name="pattern_{pattern_name.replace(" ", "_")}_[YYYYMMDD]",
-    content="NAME|PROBLEM|SOLUTION|WHEN_TO_USE|WHEN_NOT_TO_USE|EXAMPLE",
+    name="pattern_{name_slug}_[YYYYMMDD]",
+    content="NAME|PROBLEM|SOLUTION|WHEN_TO_USE|WHEN_NOT_TO_USE|EXAMPLE|REFLECTION: ...",
     memory_type="long_term",
     importance="high",
     tags=["pattern", "best-practice"]
 )
 ```
+
+Before claiming done: run verification command (e.g. `make test`, `pytest path/to/test.py`). Evidence before claims.
 
 This pattern will be discoverable by future agents working on similar problems.""",
                         ),

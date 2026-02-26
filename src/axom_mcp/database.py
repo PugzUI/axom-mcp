@@ -8,21 +8,23 @@ Migrated from PostgreSQL to SQLite for simplified deployment.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from enum import StrEnum
+from pathlib import Path
+from typing import Any
 
 import aiosqlite
 
 logger = logging.getLogger(__name__)
 
 
-class MemoryType(str, Enum):
+class MemoryType(StrEnum):
     """Axom memory types.
 
     Each type serves a specific purpose in the memory hierarchy:
@@ -38,7 +40,7 @@ class MemoryType(str, Enum):
     DREAMS = "dreams"
 
 
-class ImportanceLevel(str, Enum):
+class ImportanceLevel(StrEnum):
     """Memory importance levels for prioritization."""
 
     LOW = "low"
@@ -51,28 +53,28 @@ class Memory:
     """Represents an Axom memory entry in the database."""
 
     id: str
-    name: Optional[str] = None
+    name: str | None = None
     memory_type: MemoryType = MemoryType.SHORT_TERM
     importance: ImportanceLevel = ImportanceLevel.HIGH
     content: str = ""
-    summary: Optional[str] = None
-    tags: List[str] = field(default_factory=list)
-    source_agent: Optional[str] = None
-    source_context: Optional[str] = None
-    source_tool: Optional[str] = None
-    parent_memory_id: Optional[str] = None
-    associated_memories: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    accessed_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    summary: str | None = None
+    tags: list[str] = field(default_factory=list)
+    source_agent: str | None = None
+    source_context: str | None = None
+    source_tool: str | None = None
+    parent_memory_id: str | None = None
+    associated_memories: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    accessed_at: datetime | None = None
+    expires_at: datetime | None = None
     access_count: int = 0
 
     def __post_init__(self) -> None:
         pass
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert memory to dictionary."""
         return {
             "id": self.id,
@@ -117,7 +119,7 @@ class DatabaseManager:
 
     def __init__(self, database_path: str):
         self.database_path = database_path
-        self.conn: Optional[aiosqlite.Connection] = None
+        self.conn: aiosqlite.Connection | None = None
 
         # Load expiration configuration from environment
         self.expiration_days = {
@@ -171,7 +173,7 @@ class DatabaseManager:
         schema_path = os.path.join(current_dir, "schema.sql")
 
         try:
-            with open(schema_path, "r", encoding="utf-8") as f:
+            with open(schema_path, encoding="utf-8") as f:
                 schema_sql = f.read()
         except FileNotFoundError:
             logger.error(f"Schema file not found at {schema_path}")
@@ -202,6 +204,47 @@ class DatabaseManager:
 
         await conn.commit()
         logger.info("Database schema ensured from schema.sql")
+
+        # Auto-load dev_seed when DB is empty and seed exists (first-time init)
+        await self._maybe_load_dev_seed()
+
+    async def _maybe_load_dev_seed(self) -> None:
+        """Load db/dev_seed/seed.sql when the database is empty and seed exists.
+
+        Only runs for the default DB path (~/.axom/axom.db) to avoid loading
+        into test databases. Set AXOM_SKIP_AUTO_DEV_SEED=1 to disable.
+        """
+        if os.environ.get("AXOM_SKIP_AUTO_DEV_SEED", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
+            return
+
+        default_path = os.path.expanduser(os.path.join("~", ".axom", "axom.db"))
+        if os.path.normpath(self.database_path) != os.path.normpath(default_path):
+            return
+
+        conn = self._get_conn()
+        cursor = await conn.execute("SELECT COUNT(*) FROM memories")
+        row = await cursor.fetchone()
+        count = row[0] if row else 0
+        if count > 0:
+            return
+
+        # DB is empty; check for dev_seed
+        project_root = Path(__file__).resolve().parent.parent.parent
+        seed_path = project_root / "db" / "dev_seed" / "seed.sql"
+        if not seed_path.exists():
+            return
+
+        try:
+            seed_sql = seed_path.read_text(encoding="utf-8")
+            await conn.executescript(seed_sql)
+            await conn.commit()
+            logger.info(f"Loaded dev_seed from {seed_path}")
+        except Exception as e:
+            logger.warning(f"Failed to load dev_seed: {e}")
 
     async def _sync_fts_index(self) -> None:
         """Ensure the FTS table reflects all rows in memories.
@@ -242,13 +285,13 @@ class DatabaseManager:
         content: str,
         memory_type: str = "long_term",
         importance: str = "high",
-        tags: Optional[List[str]] = None,
-        source_agent: Optional[str] = None,
-        source_context: Optional[str] = None,
-        source_tool: Optional[str] = None,
-        parent_memory_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        expires_in_days: Optional[int] = None,
+        tags: list[str] | None = None,
+        source_agent: str | None = None,
+        source_context: str | None = None,
+        source_tool: str | None = None,
+        parent_memory_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        expires_in_days: int | None = None,
     ) -> str:
         """Create a new memory in the database.
 
@@ -281,13 +324,12 @@ class DatabaseManager:
         if expires_in_days:
             # Explicit expiration specified in days
             expires_at = (
-                datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+                datetime.now(UTC) + timedelta(days=expires_in_days)
             ).isoformat()
         elif self.expiration_days.get(memory_type, 0) > 0:
             # Use default expiration for memory type
             expires_at = (
-                datetime.now(timezone.utc)
-                + timedelta(days=self.expiration_days[memory_type])
+                datetime.now(UTC) + timedelta(days=self.expiration_days[memory_type])
             ).isoformat()
 
         # Normalize and sort tags for consistent storage
@@ -298,7 +340,7 @@ class DatabaseManager:
         tags_json = json.dumps(tags)
         metadata_json = json.dumps(metadata)
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         conn = self._get_conn()
 
         await conn.execute(
@@ -332,7 +374,7 @@ class DatabaseManager:
         logger.info(f"Created memory '{name}' with ID {memory_id}")
         return memory_id
 
-    async def get_memory(self, memory_id: str) -> Optional[Dict[str, Any]]:
+    async def get_memory(self, memory_id: str) -> dict[str, Any] | None:
         """Retrieve a memory by ID."""
         conn = self._get_conn()
         async with conn.execute(
@@ -346,7 +388,7 @@ class DatabaseManager:
             return self._row_to_dict(row)
         return None
 
-    async def get_memory_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    async def get_memory_by_name(self, name: str) -> dict[str, Any] | None:
         """Retrieve a memory by name."""
         conn = self._get_conn()
         async with conn.execute(
@@ -362,12 +404,12 @@ class DatabaseManager:
 
     async def list_memories(
         self,
-        memory_type: Optional[str] = None,
-        importance: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        source_agent: Optional[str] = None,
+        memory_type: str | None = None,
+        importance: str | None = None,
+        tags: list[str] | None = None,
+        source_agent: str | None = None,
         limit: int = 50,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """List memories with optional filtering."""
 
         conditions = []
@@ -420,12 +462,12 @@ class DatabaseManager:
 
     async def search_memories(
         self,
-        query: Optional[str] = None,
-        memory_type: Optional[str] = None,
-        importance: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        query: str | None = None,
+        memory_type: str | None = None,
+        importance: str | None = None,
+        tags: list[str] | None = None,
         limit: int = 10,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Search memories by content using FTS5."""
 
         # Use FTS5 for full-text search
@@ -504,14 +546,14 @@ class DatabaseManager:
     async def _search_memories_like(
         self,
         query: str,
-        memory_type: Optional[str],
-        importance: Optional[str],
+        memory_type: str | None,
+        importance: str | None,
         limit: int,
-    ) -> List[aiosqlite.Row]:
+    ) -> list[aiosqlite.Row]:
         """Fallback substring search when FTS is unavailable or empty."""
         conditions = ["(m.name LIKE ? OR m.content LIKE ? OR m.tags LIKE ?)"]
         like_query = f"%{query}%"
-        params: List[Any] = [like_query, like_query, like_query]
+        params: list[Any] = [like_query, like_query, like_query]
 
         if memory_type:
             conditions.append("m.memory_type = ?")
@@ -539,11 +581,11 @@ class DatabaseManager:
     async def update_memory(
         self,
         memory_id: str,
-        content: Optional[str] = None,
-        importance: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        content: str | None = None,
+        importance: str | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Update an existing memory."""
 
         updates = []
@@ -570,7 +612,7 @@ class DatabaseManager:
 
         # Add updated_at timestamp
         updates.append("updated_at = ?")
-        params.append(datetime.now(timezone.utc).isoformat())
+        params.append(datetime.now(UTC).isoformat())
 
         params.append(memory_id)
 
@@ -630,7 +672,7 @@ class DatabaseManager:
 
         return cursor.rowcount > 0
 
-    async def cleanup_expired_memories(self) -> Dict[str, Any]:
+    async def cleanup_expired_memories(self) -> dict[str, Any]:
         """Run the database cleanup process.
 
         This method:
@@ -640,8 +682,8 @@ class DatabaseManager:
         Returns:
             Dictionary with cleanup results
         """
-        now = datetime.now(timezone.utc).isoformat()
-        ninety_days_ago = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+        now = datetime.now(UTC).isoformat()
+        ninety_days_ago = (datetime.now(UTC) - timedelta(days=90)).isoformat()
 
         # Resolve expired IDs first so we can prune references after deletion.
         conn = self._get_conn()
@@ -677,7 +719,7 @@ class DatabaseManager:
             "logs_deleted": logs_deleted,
         }
 
-    async def _prune_association_references(self, removed_ids: List[str]) -> int:
+    async def _prune_association_references(self, removed_ids: list[str]) -> int:
         """Remove deleted memory IDs from all associated_memories arrays.
 
         Args:
@@ -720,7 +762,7 @@ class DatabaseManager:
                 "UPDATE memories SET associated_memories = ?, updated_at = ? WHERE id = ?",
                 (
                     json.dumps(pruned_ids),
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                     row["id"],
                 ),
             )
@@ -728,7 +770,7 @@ class DatabaseManager:
 
         return updated_rows
 
-    async def get_memory_stats(self) -> Dict[str, Any]:
+    async def get_memory_stats(self) -> dict[str, Any]:
         """Get memory statistics."""
         async with self.conn.execute("""
             SELECT
@@ -766,10 +808,8 @@ class DatabaseManager:
             # Parse current associations from JSON
             current = []
             if row["associated_memories"]:
-                try:
+                with contextlib.suppress(json.JSONDecodeError):
                     current = json.loads(row["associated_memories"])
-                except json.JSONDecodeError:
-                    pass
 
             # Add target if not already present
             if target_id not in current:
@@ -789,7 +829,7 @@ class DatabaseManager:
 
     async def get_associated_memories(
         self, memory_id: str, include_extended: bool = True
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get associated memories for a memory with optional 1-level extension.
 
         Args:
@@ -887,10 +927,8 @@ class DatabaseManager:
             # Parse current associations from JSON
             current = []
             if row["associated_memories"]:
-                try:
+                with contextlib.suppress(json.JSONDecodeError):
                     current = json.loads(row["associated_memories"])
-                except json.JSONDecodeError:
-                    pass
 
             # Remove target if present
             if target_id in current:
@@ -910,11 +948,11 @@ class DatabaseManager:
 
     async def get_access_log(
         self,
-        memory_id: Optional[str] = None,
-        accessed_by: Optional[str] = None,
-        access_type: Optional[str] = None,
+        memory_id: str | None = None,
+        accessed_by: str | None = None,
+        access_type: str | None = None,
         limit: int = 50,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get memory access log entries.
 
         Args:
@@ -965,7 +1003,7 @@ class DatabaseManager:
         """Update access tracking for a memory."""
         # Insert into access log (trigger will update memories table)
         access_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         conn = self._get_conn()
         await conn.execute(
@@ -978,7 +1016,7 @@ class DatabaseManager:
         conn = self._get_conn()
         await conn.commit()
 
-    def _row_to_dict(self, row) -> Dict[str, Any]:
+    def _row_to_dict(self, row) -> dict[str, Any]:
         """Convert database row to dictionary."""
         # Parse metadata from JSON
         metadata = {}
@@ -998,7 +1036,7 @@ class DatabaseManager:
 
         # Parse associated_memories from JSON
         associated_memories = []
-        if "associated_memories" in row.keys() and row["associated_memories"]:
+        if "associated_memories" in row and row["associated_memories"]:
             try:
                 associated_memories = json.loads(row["associated_memories"])
             except json.JSONDecodeError:
@@ -1017,7 +1055,7 @@ class DatabaseManager:
             "source_tool": row["source_tool"],
             "parent_memory_id": (
                 str(row["parent_memory_id"])
-                if "parent_memory_id" in row.keys() and row["parent_memory_id"]
+                if "parent_memory_id" in row and row["parent_memory_id"]
                 else None
             ),
             "associated_memories": associated_memories,
@@ -1027,12 +1065,12 @@ class DatabaseManager:
             "accessed_at": str(row["accessed_at"]) if row["accessed_at"] else None,
             "expires_at": str(row["expires_at"]) if row["expires_at"] else None,
             "access_count": row["access_count"],
-            "rank": row["rank"] if "rank" in row.keys() else None,
+            "rank": dict(row).get("rank"),
         }
 
 
 # Global database manager instance
-_db_manager: Optional[DatabaseManager] = None
+_db_manager: DatabaseManager | None = None
 _db_manager_lock = asyncio.Lock()
 
 

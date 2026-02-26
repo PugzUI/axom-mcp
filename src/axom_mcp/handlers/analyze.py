@@ -15,7 +15,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..schemas import AnalyzeInput
 
@@ -41,7 +41,7 @@ def _validate_path(target: str) -> Path:
     raise ValueError(f"Path {target} is outside allowed directories")
 
 
-async def handle_analyze(arguments: Dict[str, Any]) -> str:
+async def handle_analyze(arguments: dict[str, Any]) -> str:
     """Handle axom_mcp_analyze tool calls.
 
     Args:
@@ -115,7 +115,7 @@ async def handle_analyze(arguments: Dict[str, Any]) -> str:
         return json.dumps({"error": str(e)})
 
 
-async def _analyze_debug(code: str, focus: Optional[str], depth: str) -> Dict[str, Any]:
+async def _analyze_debug(code: str, focus: str | None, depth: str) -> dict[str, Any]:
     """Perform debug analysis."""
     issues = []
 
@@ -165,9 +165,7 @@ async def _analyze_debug(code: str, focus: Optional[str], depth: str) -> Dict[st
     }
 
 
-async def _analyze_review(
-    code: str, focus: Optional[str], depth: str
-) -> Dict[str, Any]:
+async def _analyze_review(code: str, focus: str | None, depth: str) -> dict[str, Any]:
     """Perform code review analysis."""
     issues = []
 
@@ -226,14 +224,12 @@ async def _analyze_review(
         "issues": issues,
         "summary": f"Found {len(issues)} code quality issues",
         "recommendations": (
-            list(set(i["message"] for i in issues[:5]))
-            if issues
-            else ["Code looks good!"]
+            list({i["message"] for i in issues[:5]}) if issues else ["Code looks good!"]
         ),
     }
 
 
-async def _analyze_audit(code: str, focus: Optional[str], depth: str) -> Dict[str, Any]:
+async def _analyze_audit(code: str, focus: str | None, depth: str) -> dict[str, Any]:
     """Perform security audit analysis."""
     issues = []
 
@@ -307,9 +303,7 @@ async def _analyze_audit(code: str, focus: Optional[str], depth: str) -> Dict[st
     }
 
 
-async def _analyze_refactor(
-    code: str, focus: Optional[str], depth: str
-) -> Dict[str, Any]:
+async def _analyze_refactor(code: str, focus: str | None, depth: str) -> dict[str, Any]:
     """Perform refactoring analysis."""
     suggestions = []
 
@@ -345,7 +339,7 @@ async def _analyze_refactor(
 
     # Check for duplicate code (simple heuristic)
     lines = code.split("\n")
-    line_counts: Dict[str, List[int]] = {}
+    line_counts: dict[str, list[int]] = {}
     for i, line in enumerate(lines):
         stripped = line.strip()
         if stripped and len(stripped) > 10:
@@ -353,7 +347,7 @@ async def _analyze_refactor(
                 line_counts[stripped] = []
             line_counts[stripped].append(i + 1)
 
-    for line_text, occurrences in line_counts.items():
+    for _line_text, occurrences in line_counts.items():
         if len(occurrences) > 2:
             suggestions.append(
                 {
@@ -378,7 +372,7 @@ async def _analyze_refactor(
     }
 
 
-async def _analyze_test(code: str, focus: Optional[str], depth: str) -> Dict[str, Any]:
+async def _analyze_test(code: str, focus: str | None, depth: str) -> dict[str, Any]:
     """Perform test coverage analysis."""
     issues = []
 
@@ -433,7 +427,7 @@ async def _analyze_test(code: str, focus: Optional[str], depth: str) -> Dict[str
     }
 
 
-def _format_actionable(result: Dict[str, Any]) -> str:
+def _format_actionable(result: dict[str, Any]) -> str:
     """Format result as actionable items."""
     lines = []
     lines.append(f"## Analysis: {result.get('type', 'unknown')}")

@@ -63,6 +63,9 @@ Thumbs.db
 
 # Project specific
 node_modules/
+
+# Dev seed (generated, local only)
+db/dev_seed/
 docs/registry-helper.md
 docs/cleanup.md
 *.db

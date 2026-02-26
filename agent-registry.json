@@ -24,7 +24,8 @@
               "format": "flat",
               "ext": ".mdc"
             },
-            "skills": { "path": "~/.cursor/skills", "format": "dir" }
+            "skills": { "path": "~/.cursor/skills", "format": "dir" },
+            "agents": { "path": "~/.cursor/agents", "format": "flat" }
           }
         },
         "cli": {

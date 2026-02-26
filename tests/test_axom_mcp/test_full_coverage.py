@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import importlib
 import json
-import os
 from pathlib import Path
 from unittest.mock import AsyncMock
 
@@ -22,9 +21,8 @@ from mcp.types import (
 
 from axom_mcp import server
 from axom_mcp.database import DatabaseManager, Memory, close_db_manager, get_db_manager
-from axom_mcp.handlers import analyze, discover
+from axom_mcp.handlers import analyze, discover, transform
 from axom_mcp.handlers import exec as exec_handler
-from axom_mcp.handlers import transform
 
 
 @pytest.mark.asyncio
@@ -88,12 +86,14 @@ async def test_server_request_handlers_and_prompt_variants(tmp_path, monkeypatch
         )
 
     prompts = await handlers[ListPromptsRequest](ListPromptsRequest())
-    assert len(prompts.root.prompts) == 4
+    assert len(prompts.root.prompts) == 6
 
     for name, args in [
         ("memory-workflow", {"task_description": "x"}),
         ("debug-session", {"error_description": "boom", "context": "ctx"}),
+        ("systematic-debug", {"error_description": "boom", "context": "ctx"}),
         ("code-review", {"target_path": "src", "focus_area": "security"}),
+        ("complex-problem", {"topic": "auth bug"}),
         ("store-pattern", {"pattern_name": "p", "description": "d"}),
     ]:
         gp = await handlers[GetPromptRequest](
@@ -393,7 +393,7 @@ async def test_exec_paths_and_chain_engine(tmp_path, monkeypatch):
         return proc
 
     async def fake_wait_for(*args, **kwargs):
-        raise asyncio.TimeoutError
+        raise TimeoutError
 
     monkeypatch.setattr(
         exec_handler.asyncio, "create_subprocess_shell", fake_subprocess

@@ -4,20 +4,48 @@ This module handles all memory operations:
 - write: Store a new memory
 - read: Retrieve a specific memory by name
 - list: List memories with optional filters
-- search: Full-text search across memories
+- search: Full-text search across memories (chains to web search if no results)
 - delete: Remove a memory by name
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
-from typing import Any, Dict
+import os
+from typing import Any
 
 from ..database import get_db_manager
 from ..schemas import ImportanceLevel, MemoryInput, MemoryType
 
 logger = logging.getLogger(__name__)
+
+WEB_SEARCH_LIMIT = int(os.environ.get("AXOM_WEB_SEARCH_LIMIT", "5"))
+WEB_SEARCH_FALLBACK = os.environ.get("AXOM_WEB_SEARCH_FALLBACK", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
+
+def _web_search_sync(query: str, limit: int) -> list[dict[str, str]]:
+    """Run web search (sync, runs in executor)."""
+    try:
+        from ddgs import DDGS
+
+        results = DDGS().text(query, max_results=limit)
+        return [
+            {
+                "title": r.get("title", ""),
+                "href": r.get("href", ""),
+                "body": r.get("body", ""),
+            }
+            for r in (results or [])
+        ]
+    except Exception as e:
+        logger.warning(f"Web search failed: {e}")
+        return []
 
 
 def _to_iso_or_str(value: Any) -> Any:
@@ -29,7 +57,25 @@ def _to_iso_or_str(value: Any) -> Any:
     return str(value)
 
 
-async def handle_memory(arguments: Dict[str, Any]) -> str:
+REFLECTION_EXCERPT_LEN = 200
+
+
+def _extract_reflection_excerpt(content: str) -> str | None:
+    """Extract first N chars of REFLECTION block from content."""
+    if not content:
+        return None
+    upper = content.upper()
+    idx = upper.find("REFLECTION:")
+    if idx < 0:
+        return None
+    start = idx + len("REFLECTION:")
+    excerpt = content[start:].lstrip()
+    if len(excerpt) > REFLECTION_EXCERPT_LEN:
+        return excerpt[:REFLECTION_EXCERPT_LEN] + "..."
+    return excerpt if excerpt else None
+
+
+async def handle_memory(arguments: dict[str, Any]) -> str:
     """Handle axom_mcp_memory tool calls.
 
     Args:
@@ -231,27 +277,46 @@ async def _handle_search(input_data: MemoryInput, db) -> str:
             limit=limit,
         )
 
-        return json.dumps(
-            {
-                "success": True,
-                "query": input_data.query,
-                "count": len(memories),
-                "results": [
-                    {
-                        "name": m["name"],
-                        "content": (
-                            m["content"][:500] + "..."
-                            if len(m["content"]) > 500
-                            else m["content"]
-                        ),
-                        "memory_type": m["memory_type"],
-                        "importance": m["importance"],
-                        "relevance": m.get("rank", 0),
-                    }
-                    for m in memories
-                ],
-            }
+        has_reflex = any(
+            (m.get("memory_type") or "").lower() == "reflex" for m in memories
         )
+
+        results_list: list[dict[str, Any]] = []
+        for m in memories:
+            item: dict[str, Any] = {
+                "name": m["name"],
+                "content": (
+                    m["content"][:500] + "..."
+                    if len(m["content"]) > 500
+                    else m["content"]
+                ),
+                "memory_type": m["memory_type"],
+                "importance": m["importance"],
+                "relevance": m.get("rank", 0),
+            }
+            reflection_excerpt = _extract_reflection_excerpt(m.get("content") or "")
+            if reflection_excerpt:
+                item["reflection_excerpt"] = reflection_excerpt
+            results_list.append(item)
+
+        result: dict[str, Any] = {
+            "success": True,
+            "query": input_data.query,
+            "count": len(memories),
+            "has_reflex": has_reflex,
+            "results": results_list,
+        }
+
+        # Mandatory web search fallback when no memory results
+        if len(memories) == 0 and WEB_SEARCH_FALLBACK:
+            web_results = await asyncio.to_thread(
+                _web_search_sync, input_data.query, WEB_SEARCH_LIMIT
+            )
+            result["web_search"] = True
+            result["web_results"] = web_results
+            result["web_count"] = len(web_results)
+
+        return json.dumps(result)
     except Exception as e:
         logger.error(f"Failed to search memories: {e}")
         return json.dumps({"error": str(e)})

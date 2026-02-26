@@ -6,13 +6,13 @@ comprehensive validation using Pydantic v2.
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class MemoryType(str, Enum):
+class MemoryType(StrEnum):
     """Axom memory types.
 
     Each type serves a specific purpose in the memory hierarchy:
@@ -28,7 +28,7 @@ class MemoryType(str, Enum):
     DREAMS = "dreams"
 
 
-class ImportanceLevel(str, Enum):
+class ImportanceLevel(StrEnum):
     """Memory importance levels for prioritization.
 
     Used to rank memories for retrieval and cleanup:
@@ -67,15 +67,15 @@ class MemoryWriteInput(BaseModel):
         default=ImportanceLevel.HIGH,
         description="Importance level for prioritization",
     )
-    tags: Optional[List[str]] = Field(
+    tags: list[str] | None = Field(
         default=None, max_length=20, description="Tags for categorization and search"
     )
-    source_agent: Optional[str] = Field(
+    source_agent: str | None = Field(
         default=None,
         max_length=255,
         description="Identifier of the agent creating this memory",
     )
-    parent_memory_name: Optional[str] = Field(
+    parent_memory_name: str | None = Field(
         default=None, description="Parent memory name for hierarchical structure"
     )
 
@@ -99,14 +99,14 @@ class MemorySearchInput(BaseModel):
     query: str = Field(
         ..., min_length=1, max_length=1000, description="Search query string"
     )
-    memory_type: Optional[MemoryType] = Field(
+    memory_type: MemoryType | None = Field(
         default=None, description="Filter by memory type"
     )
-    importance: Optional[ImportanceLevel] = Field(
+    importance: ImportanceLevel | None = Field(
         default=None, description="Filter by importance level"
     )
-    tags: Optional[List[str]] = Field(default=None, description="Filter by tags")
-    limit: Optional[int] = Field(
+    tags: list[str] | None = Field(default=None, description="Filter by tags")
+    limit: int | None = Field(
         default=10, ge=1, le=100, description="Maximum number of results"
     )
 
@@ -128,13 +128,13 @@ class MemoryListInput(BaseModel):
     model_config = {"extra": "forbid"}
 
     action: str = Field(default="list", pattern="^list$")
-    memory_type: Optional[MemoryType] = Field(
+    memory_type: MemoryType | None = Field(
         default=None, description="Filter by memory type"
     )
-    importance: Optional[ImportanceLevel] = Field(
+    importance: ImportanceLevel | None = Field(
         default=None, description="Filter by importance level"
     )
-    limit: Optional[int] = Field(
+    limit: int | None = Field(
         default=50, ge=1, le=200, description="Maximum number of results"
     )
 
@@ -161,45 +161,45 @@ class MemoryInput(BaseModel):
         description="Memory operation to perform",
     )
     # Write fields
-    name: Optional[str] = Field(
+    name: str | None = Field(
         default=None,
         min_length=1,
         max_length=255,
         description="Memory identifier (required for read/write/delete)",
     )
-    content: Optional[str] = Field(
+    content: str | None = Field(
         default=None,
         max_length=1_000_000,
         description="Memory content (required for write)",
     )
-    memory_type: Optional[MemoryType] = Field(
+    memory_type: MemoryType | None = Field(
         default=None, description="Type of memory storage"
     )
-    importance: Optional[ImportanceLevel] = Field(
+    importance: ImportanceLevel | None = Field(
         default=None, description="Importance level"
     )
-    tags: Optional[List[str]] = Field(
+    tags: list[str] | None = Field(
         default=None, max_length=20, description="Tags for categorization"
     )
-    source_agent: Optional[str] = Field(
+    source_agent: str | None = Field(
         default=None, max_length=255, description="Source agent identifier"
     )
     # Association field (simplified)
-    target_memory_name: Optional[str] = Field(
+    target_memory_name: str | None = Field(
         default=None,
         description="Target memory name for association (required for associate action)",
     )
-    parent_memory_name: Optional[str] = Field(
+    parent_memory_name: str | None = Field(
         default=None, description="Parent memory name for hierarchical structure"
     )
     # Search/List fields
-    query: Optional[str] = Field(
+    query: str | None = Field(
         default=None, max_length=1000, description="Search query (required for search)"
     )
-    limit: Optional[int] = Field(
+    limit: int | None = Field(
         default=None, ge=1, le=200, description="Maximum results to return"
     )
-    expires_in_days: Optional[int] = Field(
+    expires_in_days: int | None = Field(
         default=None, ge=1, description="Override default expiration in days"
     )
 
@@ -220,12 +220,12 @@ class ExecInput(BaseModel):
         max_length=4096,
         description="File path for read/write, or command for shell",
     )
-    data: Optional[str] = Field(
+    data: str | None = Field(
         default=None,
         max_length=10_000_000,
         description="Data to write (for write operation)",
     )
-    chain: Optional[List[Dict[str, Any]]] = Field(
+    chain: list[dict[str, Any]] | None = Field(
         default=None, max_length=10, description="Chain of subsequent operations"
     )
 
@@ -239,22 +239,22 @@ class AnalyzeInput(BaseModel):
         ..., pattern="^(debug|review|audit|refactor|test)$", description="Analysis type"
     )
     target: str = Field(..., min_length=1, description="File path or code to analyze")
-    focus: Optional[str] = Field(
+    focus: str | None = Field(
         default=None,
         max_length=100,
         description="Focus area (e.g., security, performance)",
     )
-    depth: Optional[str] = Field(
+    depth: str | None = Field(
         default="medium",
         pattern="^(minimal|low|medium|high|max)$",
         description="Analysis depth level",
     )
-    output_format: Optional[str] = Field(
+    output_format: str | None = Field(
         default="summary",
         pattern="^(summary|detailed|actionable)$",
         description="Output format preference",
     )
-    chain: Optional[List[Dict[str, Any]]] = Field(
+    chain: list[dict[str, Any]] | None = Field(
         default=None,
         max_length=10,
         description="Chain operations based on analysis results",
@@ -271,14 +271,14 @@ class DiscoverInput(BaseModel):
         pattern="^(files|tools|memory|capabilities|all)$",
         description="Discovery domain",
     )
-    filter: Optional[Dict[str, Any]] = Field(
+    filter: dict[str, Any] | None = Field(
         default=None, description="Filter criteria (pattern, type, etc.)"
     )
-    limit: Optional[int] = Field(
+    limit: int | None = Field(
         default=None, ge=1, le=1000, description="Maximum results"
     )
-    recursive: Optional[bool] = Field(default=None, description="Recursive discovery")
-    chain: Optional[List[Dict[str, Any]]] = Field(
+    recursive: bool | None = Field(default=None, description="Recursive discovery")
+    chain: list[dict[str, Any]] | None = Field(
         default=None, max_length=10, description="Chain operations based on discovery"
     )
 
@@ -291,7 +291,7 @@ class TransformInput(BaseModel):
     input: str = Field(
         ..., min_length=1, max_length=10_000_000, description="Input data to transform"
     )
-    input_format: Optional[str] = Field(
+    input_format: str | None = Field(
         default=None,
         pattern="^(json|yaml|csv|markdown|code)$",
         description="Input format (auto-detected if not specified)",
@@ -299,13 +299,13 @@ class TransformInput(BaseModel):
     output_format: str = Field(
         ..., pattern="^(json|yaml|csv|markdown|code)$", description="Output format"
     )
-    rules: Optional[List[Dict[str, Any]]] = Field(
+    rules: list[dict[str, Any]] | None = Field(
         default=None, description="Transformation rules"
     )
-    template: Optional[str] = Field(
+    template: str | None = Field(
         default=None, max_length=10000, description="Template for transformation"
     )
-    chain: Optional[List[Dict[str, Any]]] = Field(
+    chain: list[dict[str, Any]] | None = Field(
         default=None, max_length=10, description="Chain operations after transformation"
     )
 
@@ -317,17 +317,17 @@ class MemoryResponse(BaseModel):
     """Response model for memory operations."""
 
     success: bool
-    id: Optional[str] = None
-    name: Optional[str] = None
-    content: Optional[str] = None
-    memory_type: Optional[str] = None
-    importance: Optional[str] = None
-    tags: Optional[List[str]] = None
-    source_agent: Optional[str] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
+    id: str | None = None
+    name: str | None = None
+    content: str | None = None
+    memory_type: str | None = None
+    importance: str | None = None
+    tags: list[str] | None = None
+    source_agent: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    message: str | None = None
+    error: str | None = None
 
 
 class MemoryListResponse(BaseModel):
@@ -335,8 +335,8 @@ class MemoryListResponse(BaseModel):
 
     success: bool
     count: int
-    memories: List[Dict[str, Any]]
-    error: Optional[str] = None
+    memories: list[dict[str, Any]]
+    error: str | None = None
 
 
 class MemorySearchResponse(BaseModel):
@@ -345,8 +345,8 @@ class MemorySearchResponse(BaseModel):
     success: bool
     query: str
     count: int
-    results: List[Dict[str, Any]]
-    error: Optional[str] = None
+    results: list[dict[str, Any]]
+    error: str | None = None
 
     # Association models
 
@@ -354,7 +354,7 @@ class MemorySearchResponse(BaseModel):
 # Access log models
 
 
-class AccessType(str, Enum):
+class AccessType(StrEnum):
     """Types of memory access."""
 
     READ = "read"
@@ -370,16 +370,16 @@ class MemoryAccessLogInput(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-    memory_name: Optional[str] = Field(
+    memory_name: str | None = Field(
         default=None,
         min_length=1,
         max_length=255,
         description="Filter by specific memory name",
     )
-    accessed_by: Optional[str] = Field(
+    accessed_by: str | None = Field(
         default=None, max_length=100, description="Filter by what accessed the memory"
     )
-    access_type: Optional[AccessType] = Field(
+    access_type: AccessType | None = Field(
         default=None, description="Filter by access type"
     )
     limit: int = Field(
@@ -393,9 +393,9 @@ class AccessLogEntry(BaseModel):
     id: str
     memory_id: str
     memory_name: str
-    accessed_by: Optional[str] = None
+    accessed_by: str | None = None
     access_type: str
-    context: Optional[str] = None
+    context: str | None = None
     created_at: str
 
 
@@ -404,5 +404,5 @@ class AccessLogResponse(BaseModel):
 
     success: bool
     count: int
-    entries: List[Dict[str, Any]]
-    error: Optional[str] = None
+    entries: list[dict[str, Any]]
+    error: str | None = None

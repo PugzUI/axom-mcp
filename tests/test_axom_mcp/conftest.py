@@ -4,11 +4,15 @@ This module provides fixtures for testing the Axom MCP server components.
 """
 
 import asyncio
+import os
+
+# Disable web search fallback in tests to avoid network calls
+os.environ["AXOM_WEB_SEARCH_FALLBACK"] = "false"
 import json
 import os
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock
 
 import aiosqlite
@@ -120,7 +124,7 @@ async def sqlite_db():
 
 
 @pytest.fixture
-def sample_memory_data() -> Dict[str, Any]:
+def sample_memory_data() -> dict[str, Any]:
     """Sample memory data for testing."""
     return {
         "id": "12345678-1234-1234-1234-123456789abc",
@@ -143,7 +147,7 @@ def sample_memory_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_memory_record(sample_memory_data) -> Dict[str, Any]:
+def sample_memory_record(sample_memory_data) -> dict[str, Any]:
     """Sample memory record as returned from database."""
     record = sample_memory_data.copy()
     # Convert datetime to string format as returned by aiosqlite
@@ -158,7 +162,7 @@ def sample_memory_record(sample_memory_data) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_memories_list() -> List[Dict[str, Any]]:
+def sample_memories_list() -> list[dict[str, Any]]:
     """List of sample memories for list/search tests."""
     return [
         {
@@ -291,7 +295,7 @@ if __name__ == "__main__":
 
 
 @pytest.fixture
-def memory_write_input() -> Dict[str, Any]:
+def memory_write_input() -> dict[str, Any]:
     """Valid input for memory write action."""
     return {
         "action": "write",
@@ -305,7 +309,7 @@ def memory_write_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def memory_search_input() -> Dict[str, Any]:
+def memory_search_input() -> dict[str, Any]:
     """Valid input for memory search action."""
     return {
         "action": "search",
@@ -316,7 +320,7 @@ def memory_search_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def memory_read_input() -> Dict[str, Any]:
+def memory_read_input() -> dict[str, Any]:
     """Valid input for memory read action."""
     return {
         "action": "read",
@@ -325,7 +329,7 @@ def memory_read_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def memory_list_input() -> Dict[str, Any]:
+def memory_list_input() -> dict[str, Any]:
     """Valid input for memory list action."""
     return {
         "action": "list",
@@ -336,7 +340,7 @@ def memory_list_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def memory_delete_input() -> Dict[str, Any]:
+def memory_delete_input() -> dict[str, Any]:
     """Valid input for memory delete action."""
     return {
         "action": "delete",
@@ -345,7 +349,7 @@ def memory_delete_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def exec_read_input(temp_file) -> Dict[str, Any]:
+def exec_read_input(temp_file) -> dict[str, Any]:
     """Valid input for exec read operation."""
     return {
         "operation": "read",
@@ -354,7 +358,7 @@ def exec_read_input(temp_file) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def exec_write_input(temp_directory) -> Dict[str, Any]:
+def exec_write_input(temp_directory) -> dict[str, Any]:
     """Valid input for exec write operation."""
     return {
         "operation": "write",
@@ -364,7 +368,7 @@ def exec_write_input(temp_directory) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def exec_shell_input() -> Dict[str, Any]:
+def exec_shell_input() -> dict[str, Any]:
     """Valid input for exec shell operation."""
     return {
         "operation": "shell",
@@ -373,7 +377,7 @@ def exec_shell_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def analyze_debug_input(temp_python_file) -> Dict[str, Any]:
+def analyze_debug_input(temp_python_file) -> dict[str, Any]:
     """Valid input for analyze debug action."""
     return {
         "type": "debug",
@@ -383,7 +387,7 @@ def analyze_debug_input(temp_python_file) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def analyze_review_input(temp_python_file) -> Dict[str, Any]:
+def analyze_review_input(temp_python_file) -> dict[str, Any]:
     """Valid input for analyze review action."""
     return {
         "type": "review",
@@ -394,7 +398,7 @@ def analyze_review_input(temp_python_file) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def discover_tools_input() -> Dict[str, Any]:
+def discover_tools_input() -> dict[str, Any]:
     """Valid input for discover tools domain."""
     return {
         "domain": "tools",
@@ -402,7 +406,7 @@ def discover_tools_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def discover_files_input(temp_directory) -> Dict[str, Any]:
+def discover_files_input(temp_directory) -> dict[str, Any]:
     """Valid input for discover files domain."""
     return {
         "domain": "files",
@@ -412,7 +416,7 @@ def discover_files_input(temp_directory) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def transform_json_yaml_input() -> Dict[str, Any]:
+def transform_json_yaml_input() -> dict[str, Any]:
     """Valid input for JSON to YAML transformation."""
     return {
         "input": '{"key": "value", "nested": {"item": 1}}',
@@ -422,7 +426,7 @@ def transform_json_yaml_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def transform_yaml_json_input() -> Dict[str, Any]:
+def transform_yaml_json_input() -> dict[str, Any]:
     """Valid input for YAML to JSON transformation."""
     return {
         "input": "key: value\nnested:\n  item: 1",
@@ -437,7 +441,7 @@ def transform_yaml_json_input() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def chain_read_transform(temp_json_file) -> Dict[str, Any]:
+def chain_read_transform(temp_json_file) -> dict[str, Any]:
     """Chain: read file -> transform to YAML."""
     return {
         "operation": "read",
@@ -455,7 +459,7 @@ def chain_read_transform(temp_json_file) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def chain_analyze_memory(temp_python_file) -> Dict[str, Any]:
+def chain_analyze_memory(temp_python_file) -> dict[str, Any]:
     """Chain: analyze code -> store result in memory."""
     return {
         "type": "debug",
