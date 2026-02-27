@@ -1,12 +1,16 @@
-# Byte-compiled / optimized / DLL files
+# =============================================================================
+# Python Byte-compiled / Optimized / DLL Files
+# =============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
+# C Extensions
+# =============================================================================
 *.so
 
-# Distribution / packaging
+# Python Distribution / Packaging
+# =============================================================================
 .Python
 build/
 develop-eggs/
@@ -25,10 +29,12 @@ wheels/
 *.egg
 
 # PyInstaller
+# =============================================================================
 *.manifest
 *.spec
 
-# Unit test / coverage reports
+# Unit Tests / Coverage Reports
+# =============================================================================
 htmlcov/
 .tox/
 .coverage
@@ -40,8 +46,11 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.flake8
 
-# Environments
+# Virtual Environments
+# =============================================================================
 .env
 .venv
 env/
@@ -50,25 +59,60 @@ ENV/
 env.bak/
 venv.bak/
 
-# IDEs
+# Node.js (if applicable)
+# =============================================================================
+node_modules/
+
+# Python Package Managers
+# =============================================================================
+# Poetry
+poetry.lock
+
+# Pip
+.pip/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# UV
+.uv/
+.uvx/
+
+# Hatch
+.hatch/
+
+# PDM
+.pdm.toml
+__pypackages__/
+
+# IDEs & Editors
+# =============================================================================
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+.emacs*
 
-# OS
+# Operating Systems
+# =============================================================================
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Project specific
-node_modules/
+# Logs
+# =============================================================================
+*.log
+logs/
 
-# Dev seed (generated, local only)
-db/dev_seed/
-docs/registry-helper.md
-docs/cleanup.md
-*.db
-*.db-journal
-*.sqlite
-*.sqlite3
+# Development & Debugging
+# =============================================================================
+*.dev*/
+LICENSE
+TODO
+*.db*
+*.sqlite*
+
+# MCP Server Specific
+# =============================================================================
+.axom/
+.mcp/

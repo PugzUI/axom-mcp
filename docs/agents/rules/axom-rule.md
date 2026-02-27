@@ -3,7 +3,7 @@
 ## ⚠️ Required Action
 
 1. **START:** Search memory via `axom_mcp_memory` (`action: "search"`).
-2. **END:** Store with REFLECTION via `axom_mcp_memory` (`action: "write"`).
+2. **END:** Store with `axom_mcp_analyze` via `axom_mcp_memory` (`action: "write"`).
 
 ## Reflex Shortcut
 

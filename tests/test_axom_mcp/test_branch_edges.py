@@ -35,24 +35,22 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     monkeypatch.setattr(memory, "get_db_manager", AsyncMock(return_value=db))
 
     # Unknown action branch via mocked schema object.
-    monkeypatch.setattr(
-        memory, "MemoryInput", lambda **_: SimpleNamespace(action="unknown")
-    )
+    monkeypatch.setattr(memory, "MemoryInput", lambda **_: SimpleNamespace(action="unknown"))
     unknown = json.loads(await memory.handle_memory({}))
     assert "Unknown action" in unknown["error"]
 
     # Write validation branches.
     assert (
         "name is required"
-        in json.loads(
-            await memory._handle_write(SimpleNamespace(name=None, content="x"), db)
-        )["error"]
+        in json.loads(await memory._handle_write(SimpleNamespace(name=None, content="x"), db))[
+            "error"
+        ]
     )
     assert (
         "content is required"
-        in json.loads(
-            await memory._handle_write(SimpleNamespace(name="n", content=None), db)
-        )["error"]
+        in json.loads(await memory._handle_write(SimpleNamespace(name="n", content=None), db))[
+            "error"
+        ]
     )
 
     # Write exception branch.
@@ -76,9 +74,7 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     # Read required/error/not-found/success/exception.
     assert (
         "name is required"
-        in json.loads(await memory._handle_read(SimpleNamespace(name=None), db))[
-            "error"
-        ]
+        in json.loads(await memory._handle_read(SimpleNamespace(name=None), db))["error"]
     )
     read_nf = json.loads(await memory._handle_read(SimpleNamespace(name="x"), db))
     assert "Memory not found" in read_nf["error"]
@@ -113,9 +109,7 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     assert read_ok["success"] is True
 
     db.get_memory_by_name = AsyncMock(side_effect=RuntimeError("read-fail"))
-    assert "error" in json.loads(
-        await memory._handle_read(SimpleNamespace(name="n"), db)
-    )
+    assert "error" in json.loads(await memory._handle_read(SimpleNamespace(name="n"), db))
 
     # List/search/delete/associate branches.
     db.list_memories = AsyncMock(
@@ -130,26 +124,20 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
         ]
     )
     list_ok = json.loads(
-        await memory._handle_list(
-            SimpleNamespace(limit=10, memory_type=None, importance=None), db
-        )
+        await memory._handle_list(SimpleNamespace(limit=10, memory_type=None, importance=None), db)
     )
     assert list_ok["success"] is True
 
     db.list_memories = AsyncMock(side_effect=RuntimeError("list-fail"))
     assert "error" in json.loads(
-        await memory._handle_list(
-            SimpleNamespace(limit=1, memory_type=None, importance=None), db
-        )
+        await memory._handle_list(SimpleNamespace(limit=1, memory_type=None, importance=None), db)
     )
 
     assert (
         "query is required"
         in json.loads(
             await memory._handle_search(
-                SimpleNamespace(
-                    query=None, limit=1, memory_type=None, importance=None, tags=None
-                ),
+                SimpleNamespace(query=None, limit=1, memory_type=None, importance=None, tags=None),
                 db,
             )
         )["error"]
@@ -168,9 +156,7 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     )
     search_ok = json.loads(
         await memory._handle_search(
-            SimpleNamespace(
-                query="q", limit=1, memory_type=None, importance=None, tags=None
-            ),
+            SimpleNamespace(query="q", limit=1, memory_type=None, importance=None, tags=None),
             db,
         )
     )
@@ -179,18 +165,14 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     db.search_memories = AsyncMock(side_effect=RuntimeError("search-fail"))
     assert "error" in json.loads(
         await memory._handle_search(
-            SimpleNamespace(
-                query="q", limit=1, memory_type=None, importance=None, tags=None
-            ),
+            SimpleNamespace(query="q", limit=1, memory_type=None, importance=None, tags=None),
             db,
         )
     )
 
     assert (
         "name is required"
-        in json.loads(await memory._handle_delete(SimpleNamespace(name=None), db))[
-            "error"
-        ]
+        in json.loads(await memory._handle_delete(SimpleNamespace(name=None), db))["error"]
     )
     del_nf = json.loads(await memory._handle_delete(SimpleNamespace(name="n"), db))
     assert "Memory not found" in del_nf["error"]
@@ -200,24 +182,18 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     assert del_ok["success"] is True
 
     db.delete_memory_by_name = AsyncMock(side_effect=RuntimeError("del-fail"))
-    assert "error" in json.loads(
-        await memory._handle_delete(SimpleNamespace(name="n"), db)
-    )
+    assert "error" in json.loads(await memory._handle_delete(SimpleNamespace(name="n"), db))
 
     assert (
         "source memory"
         in json.loads(
-            await memory._handle_associate(
-                SimpleNamespace(name=None, target_memory_name="x"), db
-            )
+            await memory._handle_associate(SimpleNamespace(name=None, target_memory_name="x"), db)
         )["error"]
     )
     assert (
         "target_memory_name"
         in json.loads(
-            await memory._handle_associate(
-                SimpleNamespace(name="a", target_memory_name=None), db
-            )
+            await memory._handle_associate(SimpleNamespace(name="a", target_memory_name=None), db)
         )["error"]
     )
 
@@ -225,9 +201,7 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     assert (
         "Source memory not found"
         in json.loads(
-            await memory._handle_associate(
-                SimpleNamespace(name="a", target_memory_name="b"), db
-            )
+            await memory._handle_associate(SimpleNamespace(name="a", target_memory_name="b"), db)
         )["error"]
     )
 
@@ -235,9 +209,7 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     assert (
         "Target memory not found"
         in json.loads(
-            await memory._handle_associate(
-                SimpleNamespace(name="a", target_memory_name="b"), db
-            )
+            await memory._handle_associate(SimpleNamespace(name="a", target_memory_name="b"), db)
         )["error"]
     )
 
@@ -246,17 +218,13 @@ async def test_memory_handler_all_error_and_success_paths(monkeypatch):
     assert (
         "Failed to create association"
         in json.loads(
-            await memory._handle_associate(
-                SimpleNamespace(name="a", target_memory_name="b"), db
-            )
+            await memory._handle_associate(SimpleNamespace(name="a", target_memory_name="b"), db)
         )["error"]
     )
 
     db.add_association = AsyncMock(side_effect=RuntimeError("assoc-fail"))
     assert "error" in json.loads(
-        await memory._handle_associate(
-            SimpleNamespace(name="a", target_memory_name="b"), db
-        )
+        await memory._handle_associate(SimpleNamespace(name="a", target_memory_name="b"), db)
     )
 
 
@@ -270,9 +238,7 @@ async def test_handler_unknown_and_exception_branches(monkeypatch):
             type="unknown", target="x", focus=None, depth=None, output_format=None
         ),
     )
-    assert (
-        "Unknown analysis type" in json.loads(await analyze.handle_analyze({}))["error"]
-    )
+    assert "Unknown analysis type" in json.loads(await analyze.handle_analyze({}))["error"]
 
     monkeypatch.setattr(
         analyze, "_validate_path", lambda _: (_ for _ in ()).throw(RuntimeError("bad"))
@@ -298,9 +264,7 @@ async def test_handler_unknown_and_exception_branches(monkeypatch):
             type="debug", target=None, focus=None, depth=None, output_format=None
         ),
     )
-    assert (
-        "Could not read target" in json.loads(await analyze.handle_analyze({}))["error"]
-    )
+    assert "Could not read target" in json.loads(await analyze.handle_analyze({}))["error"]
 
     # exec unknown + exception
     monkeypatch.setattr(
@@ -308,9 +272,7 @@ async def test_handler_unknown_and_exception_branches(monkeypatch):
         "ExecInput",
         lambda **_: SimpleNamespace(operation="unknown", target="x", data=None),
     )
-    assert (
-        "Unknown operation" in json.loads(await exec_handler.handle_exec({}))["error"]
-    )
+    assert "Unknown operation" in json.loads(await exec_handler.handle_exec({}))["error"]
 
     async def boom_read(_):
         raise RuntimeError("boom")
@@ -327,9 +289,7 @@ async def test_handler_unknown_and_exception_branches(monkeypatch):
     monkeypatch.setattr(
         discover,
         "DiscoverInput",
-        lambda **_: SimpleNamespace(
-            domain="unknown", filter=None, limit=None, recursive=None
-        ),
+        lambda **_: SimpleNamespace(domain="unknown", filter=None, limit=None, recursive=None),
     )
     assert "Unknown domain" in json.loads(await discover.handle_discover({}))["error"]
 
@@ -407,7 +367,9 @@ async def test_server_call_tool_and_list_resources_error_paths(monkeypatch):
 
     monkeypatch.setattr(server, "get_db_manager", bad_db)
     res = await handlers[ListResourcesRequest](ListResourcesRequest())
-    assert res.root.resources == []
+    # axom_tools is always present; memory list may be empty on error
+    assert len(res.root.resources) >= 1
+    assert res.root.resources[0].name == "axom_tools"
 
     # read resource unknown memory path branch
     async def ok_db():
@@ -458,9 +420,7 @@ async def test_prompt_includes_compact_recent_context_banner(monkeypatch):
     monkeypatch.setattr(server, "get_db_manager", fake_get_db)
 
     prompt = await handlers[GetPromptRequest](
-        GetPromptRequest(
-            params={"name": "memory-workflow", "arguments": {"task_description": "x"}}
-        )
+        GetPromptRequest(params={"name": "memory-workflow", "arguments": {"task_description": "x"}})
     )
     text = prompt.root.messages[0].content.text
 
@@ -545,16 +505,11 @@ def test_transform_uncovered_branches():
         transform._parse_input("x", "unknown")
 
     # yaml parser branches for false/float/quoted/nested dict path
-    parsed = transform._parse_simple_yaml(
-        'a: false\nb: 3.14\nc: "q"\nd:\n  child: value'
-    )
+    parsed = transform._parse_simple_yaml('a: false\nb: 3.14\nc: "q"\nd:\n  child: value')
     assert parsed["a"] is False
 
     # _apply_rule non-dict/list and aggregate count path
-    assert (
-        transform._apply_rule("x", {"type": "field_mapping", "mapping": {"a": "b"}})
-        == "x"
-    )
+    assert transform._apply_rule("x", {"type": "field_mapping", "mapping": {"a": "b"}}) == "x"
     agg = transform._apply_rule(
         [{"g": "x"}, {"g": "x"}],
         {"type": "aggregate", "group_by": "g", "function": "count"},
@@ -649,9 +604,7 @@ async def test_server_dispatch_and_memory_helper_branches(monkeypatch):
     monkeypatch.setattr(memory, "get_db_manager", AsyncMock(return_value=db))
     assert json.loads(await memory.handle_memory({"action": "list"}))["success"] is True
     assoc = json.loads(
-        await memory.handle_memory(
-            {"action": "associate", "name": "a", "target_memory_name": "b"}
-        )
+        await memory.handle_memory({"action": "associate", "name": "a", "target_memory_name": "b"})
     )
     assert assoc["success"] is True
 
@@ -689,9 +642,7 @@ async def test_discover_and_exec_remaining_branches(monkeypatch):
 
     monkeypatch.setattr(Path, "rglob", raise_perm)
     perm = json.loads(
-        await discover._discover_files(
-            {"path": str(Path.cwd()), "pattern": "*"}, 2, True
-        )
+        await discover._discover_files({"path": str(Path.cwd()), "pattern": "*"}, 2, True)
     )
     assert perm["success"] is True
     monkeypatch.setattr(Path, "rglob", orig_rglob)
@@ -724,9 +675,7 @@ async def test_discover_and_exec_remaining_branches(monkeypatch):
         lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("regex")),
     )
     assert eng._evaluate_condition("${x}", {}) is False
-    substituted = eng._substitute_variables(
-        ["${_result}", "${missing}"], {"_result": {"k": 1}}
-    )
+    substituted = eng._substitute_variables(["${_result}", "${missing}"], {"_result": {"k": 1}})
     assert substituted[0].startswith("{")
 
 
@@ -755,17 +704,13 @@ def test_transform_remaining_branches(monkeypatch):
     assert y["items"] == ["one", "two"]
 
     # field mapping/filter list branches
-    fm = transform._apply_rule(
-        [{"a": 1}], {"type": "field_mapping", "mapping": {"a": "b"}}
-    )
+    fm = transform._apply_rule([{"a": 1}], {"type": "field_mapping", "mapping": {"a": "b"}})
     assert fm[0]["b"] == 1
     flt = transform._apply_rule([{"a": 1, "b": 2}], {"type": "filter", "fields": ["a"]})
     assert flt[0] == {"a": 1}
 
     # sort branch.
-    sorted_data = transform._apply_rule(
-        [{"a": 2}, {"a": 1}], {"type": "sort", "field": "a"}
-    )
+    sorted_data = transform._apply_rule([{"a": 2}, {"a": 1}], {"type": "sort", "field": "a"})
     assert isinstance(sorted_data, list)
 
     # markdown template with non-dict data and scalar formatting branch.
@@ -784,9 +729,7 @@ async def test_database_remaining_parse_and_close_paths(tmp_path, monkeypatch):
     c = await db.create_memory(name="c", content="C")
 
     # force invalid associated_memories JSON for both add/remove decode branches
-    await db.conn.execute(
-        "UPDATE memories SET associated_memories = '{bad' WHERE id = ?", (a,)
-    )
+    await db.conn.execute("UPDATE memories SET associated_memories = '{bad' WHERE id = ?", (a,))
     await db.conn.commit()
     assert await db.add_association(a, b) is True
     assert await db.remove_association(a, b) is True
@@ -797,9 +740,7 @@ async def test_database_remaining_parse_and_close_paths(tmp_path, monkeypatch):
         "UPDATE memories SET associated_memories = ? WHERE id = ?",
         (json.dumps([b, c]), a),
     )
-    await db.conn.execute(
-        "UPDATE memories SET associated_memories = '{bad' WHERE id = ?", (b,)
-    )
+    await db.conn.execute("UPDATE memories SET associated_memories = '{bad' WHERE id = ?", (b,))
     await db.conn.commit()
     assoc = await db.get_associated_memories(a, include_extended=True)
     assert isinstance(assoc, list)
@@ -830,9 +771,7 @@ async def test_remaining_lightweight_branches(monkeypatch):
     assert ok_write["success"] is True
     outfile.unlink(missing_ok=True)
 
-    eng = exec_handler.ChainEngine(
-        handlers={"noop": AsyncMock(return_value={"ok": True})}
-    )
+    eng = exec_handler.ChainEngine(handlers={"noop": AsyncMock(return_value={"ok": True})})
     empty = await eng.execute_chain({"a": 1}, [])
     assert empty["final_result"] == {"a": 1}
     full = await eng.execute_chain(

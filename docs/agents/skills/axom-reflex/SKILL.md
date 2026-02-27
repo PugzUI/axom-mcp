@@ -54,4 +54,4 @@ Avoid vague "I verified." Evidence before claims.
 ## Reference
 
 - [axom-memory](../axom-memory/SKILL.md) – search, write, associate
-- [axom-rule](../../rules/axom-rule.md) – required behavior
+- [axom-core](../../rules/axom-core.md) – required behavior

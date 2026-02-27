@@ -32,9 +32,7 @@ async def test_server_request_handlers_and_prompt_variants(tmp_path, monkeypatch
     monkeypatch.setenv("AXOM_DB_PATH", str(db_path))
 
     db = await get_db_manager()
-    await db.create_memory(
-        name="srv_read_20260223", content="content", memory_type="long_term"
-    )
+    await db.create_memory(name="srv_read_20260223", content="content", memory_type="long_term")
 
     s = server.create_server()
     handlers = s.request_handlers
@@ -60,9 +58,7 @@ async def test_server_request_handlers_and_prompt_variants(tmp_path, monkeypatch
     resources = await handlers[ListResourcesRequest](ListResourcesRequest())
     assert len(resources.root.resources) >= 1
 
-    templates = await handlers[ListResourceTemplatesRequest](
-        ListResourceTemplatesRequest()
-    )
+    templates = await handlers[ListResourceTemplatesRequest](ListResourceTemplatesRequest())
     assert len(templates.root.resourceTemplates) == 3
 
     memory_res = await handlers[ReadResourceRequest](
@@ -80,10 +76,25 @@ async def test_server_request_handlers_and_prompt_variants(tmp_path, monkeypatch
     )
     assert "tag" in tag_res.root.contents[0].text
 
+    # axom_tools resource (tools index for default context)
+    axom_tools_uris = [
+        r.uri for r in resources.root.resources if getattr(r, "name", None) == "axom_tools"
+    ]
+    assert len(axom_tools_uris) == 1
+    axom_tools_res = await handlers[ReadResourceRequest](
+        ReadResourceRequest(params={"uri": axom_tools_uris[0]})
+    )
+    data = json.loads(axom_tools_res.root.contents[0].text)
+    assert isinstance(data, list)
+    assert len(data) == 5  # memory, exec, analyze, discover, transform
+    ids = {o["id"] for o in data}
+    assert "axom_mcp_memory" in ids and "axom_mcp_discover" in ids
+    for o in data:
+        assert "id" in o and "name" in o and "description" in o and "enabled" in o
+        assert o["enabled"] is True
+
     with pytest.raises(ValueError):
-        await handlers[ReadResourceRequest](
-            ReadResourceRequest(params={"uri": "bad://uri"})
-        )
+        await handlers[ReadResourceRequest](ReadResourceRequest(params={"uri": "bad://uri"}))
 
     prompts = await handlers[ListPromptsRequest](ListPromptsRequest())
     assert len(prompts.root.prompts) == 6
@@ -252,8 +263,7 @@ async def test_analyze_internal_paths(tmp_path, monkeypatch):
     assert "summary" in err
 
     ref = await analyze._analyze_refactor(
-        "if x:\n    if y:\n        pass\n"
-        + "\n".join(["abcde12345" for _ in range(3)]),
+        "if x:\n    if y:\n        pass\n" + "\n".join(["abcde12345" for _ in range(3)]),
         None,
         "low",
     )
@@ -269,9 +279,7 @@ async def test_analyze_internal_paths(tmp_path, monkeypatch):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(analyze, "_analyze_debug", boom)
-    bad = json.loads(
-        await analyze.handle_analyze({"type": "debug", "target": "print('x')"})
-    )
+    bad = json.loads(await analyze.handle_analyze({"type": "debug", "target": "print('x')"}))
     assert "error" in bad
 
 
@@ -282,9 +290,7 @@ def test_transform_internal_paths(monkeypatch):
     assert transform._detect_format("# title") == "markdown"
     assert transform._detect_format("plain") == "code"
 
-    parsed_yaml = transform._parse_simple_yaml(
-        "a: true\nb: 2\nc: 1.5\nd: 'x'\nlist:\n- i1"
-    )
+    parsed_yaml = transform._parse_simple_yaml("a: true\nb: 2\nc: 1.5\nd: 'x'\nlist:\n- i1")
     assert parsed_yaml["a"] is True
 
     md = transform._parse_markdown("# H\n- a\n[txt](https://x)\n```py\nprint(1)\n```")
@@ -395,9 +401,7 @@ async def test_exec_paths_and_chain_engine(tmp_path, monkeypatch):
     async def fake_wait_for(*args, **kwargs):
         raise TimeoutError
 
-    monkeypatch.setattr(
-        exec_handler.asyncio, "create_subprocess_shell", fake_subprocess
-    )
+    monkeypatch.setattr(exec_handler.asyncio, "create_subprocess_shell", fake_subprocess)
     monkeypatch.setattr(exec_handler.asyncio, "wait_for", fake_wait_for)
 
     timeout = json.loads(await exec_handler._handle_shell("echo x"))
@@ -486,9 +490,7 @@ async def test_database_edge_paths_and_serialization(tmp_path, monkeypatch):
     assert await db.get_memory("missing") is None
     assert await db.get_memory_by_name("missing") is None
 
-    await db.update_memory(
-        mid, content="edge2", importance="high", tags=["x"], metadata={"k": 2}
-    )
+    await db.update_memory(mid, content="edge2", importance="high", tags=["x"], metadata={"k": 2})
     no_update = await db.update_memory(mid)
     assert no_update is not None
 

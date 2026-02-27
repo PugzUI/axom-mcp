@@ -21,7 +21,7 @@ END_MARKER = "<!-- AXOM_AGENT_CONFIG_END -->"
 
 # Source files mapping: Name -> Relative Path
 RULES = {
-    "axom-core": "docs/agents/rules/axom-rule.md",
+    "axom-core": "docs/agents/rules/axom-core.md",
 }
 
 SKILLS = {
@@ -30,6 +30,7 @@ SKILLS = {
     "axom-discover": "docs/agents/skills/axom-discover/SKILL.md",
     "axom-analyze": "docs/agents/skills/axom-analyze/SKILL.md",
     "axom-transform": "docs/agents/skills/axom-transform/SKILL.md",
+    "axom-skills": "docs/agents/skills/axom-skills/SKILL.md",
 }
 
 # Cursor subagents: name -> relative path (installed to ~/.cursor/agents/)
@@ -39,7 +40,7 @@ SUBAGENTS = {
 
 SKILL_DESCRIPTIONS = {
     "axom-memory": (
-        "Memory tool that challenges itself, other agents, and users to re-think, "
+        "Memory tool that in addition to it's RAG capabilities, challenges itself, other agents, and users to re-think, "
         "seek optimal solutions, and improve creativity and focus."
     ),
     "axom-exec": (
@@ -57,6 +58,10 @@ SKILL_DESCRIPTIONS = {
     "axom-transform": (
         "Format conversion, templating, and rule-based data transformation for "
         "pipeline and chain-reaction workflows."
+    ),
+    "axom-skills": (
+        "Discover and use skills: call axom_mcp_discover domain tools, read INDEX.md, "
+        "and use skill guides for contextual lookup and chaining."
     ),
 }
 
@@ -201,11 +206,7 @@ def get_ide_installed_extensions(ide_name: str) -> set[str]:
                     / "CachedProfilesData"
                     / "__default__profile__"
                     / "extensions.user.cache",
-                    base_path
-                    / "Trae"
-                    / "CachedProfilesData"
-                    / "default"
-                    / "extensions.user.cache",
+                    base_path / "Trae" / "CachedProfilesData" / "default" / "extensions.user.cache",
                 ]
             elif ide_name.lower() == "vscode" or ide_name.lower() == "code":
                 cache_paths = [
@@ -214,11 +215,7 @@ def get_ide_installed_extensions(ide_name: str) -> set[str]:
                     / "CachedProfilesData"
                     / "__default__profile__"
                     / "extensions.user.cache",
-                    base_path
-                    / "Code"
-                    / "CachedProfilesData"
-                    / "default"
-                    / "extensions.user.cache",
+                    base_path / "Code" / "CachedProfilesData" / "default" / "extensions.user.cache",
                 ]
             else:
                 cache_paths = []
@@ -499,9 +496,7 @@ def scan_for_unregistered_agents(registry: dict) -> list[dict]:
                     pkg = json.loads((ext / "package.json").read_text(encoding="utf-8"))
 
                     # Check if it's a known agent extension
-                    indicators = scan_patterns.get("agent_indicators", {}).get(
-                        "config_files", []
-                    )
+                    indicators = scan_patterns.get("agent_indicators", {}).get("config_files", [])
                     for indicator in indicators:
                         if indicator in str(ext):
                             found.append(
@@ -513,11 +508,7 @@ def scan_for_unregistered_agents(registry: dict) -> list[dict]:
                                         "detection": {"paths": [str(ext)]},
                                         "configs": {
                                             "mcp": {
-                                                "path": str(
-                                                    ext
-                                                    / "settings"
-                                                    / "mcp_settings.json"
-                                                ),
+                                                "path": str(ext / "settings" / "mcp_settings.json"),
                                                 "format": "json",
                                                 "key": "mcpServers",
                                             }
@@ -695,8 +686,9 @@ def _write_toml_mcp_server(
     block_lines = [
         f"[mcp_servers.{server_name}]",
         f"command = {json.dumps(command)}",
-        f"args = {json.dumps(args)}",
     ]
+    if args:
+        block_lines.append(f"args = {json.dumps(args)}")
     if env:
         block_lines.append("")
         block_lines.append(f"[mcp_servers.{server_name}.env]")
@@ -779,9 +771,7 @@ def ensure_axom_in_path(root_path: Path) -> bool:
     except OSError as e:
         _print_warning(f"Could not create symlink in ~/.local/bin: {e}")
         # Try to add a hint about PATH
-        _print_info(
-            f"Tip: Add {local_bin} to your PATH or run: export PATH=$PATH:{local_bin}"
-        )
+        _print_info(f"Tip: Add {local_bin} to your PATH or run: export PATH=$PATH:{local_bin}")
         return False
 
 
@@ -834,28 +824,24 @@ def install_mcp_config(
         if inject:
             if path.exists():
                 content = path.read_text(encoding="utf-8")
+                server_entry = {
+                    "command": command,
+                    **({"args": args} if args else {}),
+                    **({"env": env} if env else {}),
+                }
                 modified = _inject_jsonc_value(
                     content,
                     key,
-                    {
-                        server_name: {
-                            "command": command,
-                            "args": args,
-                            **({"env": env} if env else {}),
-                        }
-                    },
+                    {server_name: server_entry},
                 )
                 path.write_text(modified, encoding="utf-8")
             else:
-                data = {
-                    key: {
-                        server_name: {
-                            "command": command,
-                            "args": args,
-                            **({"env": env} if env else {}),
-                        }
-                    }
+                server_entry = {
+                    "command": command,
+                    **({"args": args} if args else {}),
+                    **({"env": env} if env else {}),
                 }
+                data = {key: {server_name: server_entry}}
                 _write_json_path(path, data)
             _print(f"  [OK] Injected MCP config: {path}", "success")
 
@@ -863,11 +849,12 @@ def install_mcp_config(
             path.parent.mkdir(parents=True, exist_ok=True)
             data = _load_json_path(path)
             servers = data.get(key, {})
-            servers[server_name] = {
+            server_entry = {
                 "command": command,
-                "args": args,
+                **({"args": args} if args else {}),
                 **({"env": env} if env else {}),
             }
+            servers[server_name] = server_entry
             data[key] = servers
             _write_json_path(path, data)
             _print(f"  [OK] Updated MCP config: {path}", "success")
@@ -878,16 +865,15 @@ def install_mcp_config(
 
     elif format_type == "jsonc":
         content = path.read_text(encoding="utf-8") if path.exists() else "{}"
+        server_entry = {
+            "command": command,
+            **({"args": args} if args else {}),
+            **({"env": env} if env else {}),
+        }
         modified = _inject_jsonc_value(
             content,
             key,
-            {
-                server_name: {
-                    "command": command,
-                    "args": args,
-                    **({"env": env} if env else {}),
-                }
-            },
+            {server_name: server_entry},
         )
         path.write_text(modified, encoding="utf-8")
         _print(f"  [OK] Injected MCP config: {path}", "success")
@@ -946,16 +932,16 @@ def install_rules_config(
             if source.exists():
                 content = source.read_text(encoding="utf-8")
                 if START_MARKER not in existing:
-                    new_content = f"{existing.rstrip()}\n\n{START_MARKER}\n{content}\n{END_MARKER}\n"
+                    new_content = (
+                        f"{existing.rstrip()}\n\n{START_MARKER}\n{content}\n{END_MARKER}\n"
+                    )
                     path.write_text(new_content, encoding="utf-8")
                 else:
                     start_idx = existing.find(START_MARKER)
                     end_idx = existing.rfind(END_MARKER) + len(END_MARKER)
                     pre = existing[:start_idx].rstrip()
                     post = existing[end_idx:].lstrip()
-                    updated = (
-                        f"{pre}\n\n{START_MARKER}\n{content}\n{END_MARKER}\n{post}"
-                    )
+                    updated = f"{pre}\n\n{START_MARKER}\n{content}\n{END_MARKER}\n{post}"
                     path.write_text(updated.strip() + "\n", encoding="utf-8")
                 _print(f"  [OK] Updated Rules: {path}", "success")
                 break
@@ -1058,9 +1044,7 @@ def install_agent_configs(
         install_subagents_config(configs["agents"], root_path, agent_name, dry_run)
 
 
-def clean_configs(
-    registry: dict, custom_server: str | None = None, dry_run: bool = False
-) -> None:
+def clean_configs(registry: dict, custom_server: str | None = None, dry_run: bool = False) -> None:
     """Remove Axom configs, rules, and skills from all agents."""
     server_name = custom_server or "axom"
     server_name_lower = server_name.lower()
@@ -1110,8 +1094,7 @@ def clean_configs(
                                 to_remove = [
                                     name
                                     for name in servers
-                                    if isinstance(name, str)
-                                    and name.lower() == server_name_lower
+                                    if isinstance(name, str) and name.lower() == server_name_lower
                                 ]
                             else:
                                 to_remove = []
@@ -1130,9 +1113,7 @@ def clean_configs(
                             content = path.read_text(encoding="utf-8")
                             pattern = rf'"{re.escape(server_name)}"\s*:\s*\{{[^}}]*\}}'
                             if re.search(pattern, content, flags=re.IGNORECASE):
-                                content = re.sub(
-                                    pattern, "", content, flags=re.IGNORECASE
-                                )
+                                content = re.sub(pattern, "", content, flags=re.IGNORECASE)
                                 content = re.sub(r",\s*,", ",", content)
                                 content = re.sub(r"\{\s*,", "{", content)
                                 content = re.sub(r",\s*\}", "}", content)
@@ -1142,7 +1123,9 @@ def clean_configs(
                                 any_cleaned = True
                         elif format_type == "toml":
                             content = path.read_text(encoding="utf-8")
-                            pattern = rf"^\[{re.escape(key)}\.{re.escape(server_name)}\].*?(?=^\[|\Z)"
+                            pattern = (
+                                rf"^\[{re.escape(key)}\.{re.escape(server_name)}\].*?(?=^\[|\Z)"
+                            )
                             if re.search(
                                 pattern,
                                 content,
@@ -1166,9 +1149,7 @@ def clean_configs(
                                 _print(f"  [OK] Removed MCP config: {path}", "success")
                                 any_cleaned = True
                     except Exception as e:
-                        _print_error(
-                            f"  [ERROR] Failed to clean MCP for {agent_name}: {e}"
-                        )
+                        _print_error(f"  [ERROR] Failed to clean MCP for {agent_name}: {e}")
 
             # 2. Clean Rules
             if "rules" in configs:
@@ -1202,14 +1183,10 @@ def clean_configs(
                                 updated = f"{pre}\n{post}".strip() + "\n"
                                 path.write_text(updated, encoding="utf-8")
                                 _print_agent_header()
-                                _print(
-                                    f"  [OK] Removed Rules marker: {path}", "success"
-                                )
+                                _print(f"  [OK] Removed Rules marker: {path}", "success")
                                 any_cleaned = True
                     except Exception as e:
-                        _print_error(
-                            f"  [ERROR] Failed to clean Rules for {agent_name}: {e}"
-                        )
+                        _print_error(f"  [ERROR] Failed to clean Rules for {agent_name}: {e}")
 
             # 3. Clean Subagents (Cursor ~/.cursor/agents/)
             if "agents" in configs:
@@ -1232,9 +1209,7 @@ def clean_configs(
                         if path.is_dir() and not any(path.iterdir()):
                             path.rmdir()
                     except Exception as e:
-                        _print_error(
-                            f"  [ERROR] Failed to clean subagents for {agent_name}: {e}"
-                        )
+                        _print_error(f"  [ERROR] Failed to clean subagents for {agent_name}: {e}")
 
             # 4. Clean Skills
             if "skills" in configs:
@@ -1259,9 +1234,7 @@ def clean_configs(
                         if path.is_dir() and not any(path.iterdir()):
                             path.rmdir()
                     except Exception as e:
-                        _print_error(
-                            f"  [ERROR] Failed to clean Skills for {agent_name}: {e}"
-                        )
+                        _print_error(f"  [ERROR] Failed to clean Skills for {agent_name}: {e}")
 
     # 5. Clean Cursor Internal History (Orphaned Rules/Skills)
     if not dry_run:
@@ -1272,16 +1245,11 @@ def clean_configs(
                 cleaned_history = False
                 for entries_file in history_path.rglob("entries.json"):
                     try:
-                        content = entries_file.read_text(
-                            encoding="utf-8", errors="ignore"
-                        )
+                        content = entries_file.read_text(encoding="utf-8", errors="ignore")
                         # Check if this history entry refers to any of our rules or skills
                         found_match = False
                         for rule_name in RULES:
-                            if (
-                                f"{rule_name}.mdc" in content
-                                or f"{rule_name}.md" in content
-                            ):
+                            if f"{rule_name}.mdc" in content or f"{rule_name}.md" in content:
                                 found_match = True
                                 break
                         if not found_match:
@@ -1300,9 +1268,7 @@ def clean_configs(
                     except OSError:
                         continue
                 if cleaned_history:
-                    _print(
-                        "  [OK] Cleaned Cursor internal rule/skill history", "success"
-                    )
+                    _print("  [OK] Cleaned Cursor internal rule/skill history", "success")
                     any_cleaned = True
 
     if not any_cleaned:
@@ -1333,27 +1299,17 @@ def install_env_file(root_path: Path, dry_run: bool = False) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Install Axom config to agent platforms"
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true", help="Show what would be installed"
-    )
-    parser.add_argument(
-        "--scan", action="store_true", help="Scan for unregistered agents"
-    )
+    parser = argparse.ArgumentParser(description="Install Axom config to agent platforms")
+    parser.add_argument("--dry-run", action="store_true", help="Show what would be installed")
+    parser.add_argument("--scan", action="store_true", help="Scan for unregistered agents")
     parser.add_argument(
         "--all",
         action="store_true",
         help="Install to all known agents (even if not detected)",
     )
     parser.add_argument("--agent", help="Install only to specific agent")
-    parser.add_argument(
-        "--clean", action="store_true", help="Remove Axom configs from all agents"
-    )
-    parser.add_argument(
-        "--custom", help="Remove specific server configs (e.g., --custom=mcp-name)"
-    )
+    parser.add_argument("--clean", action="store_true", help="Remove Axom configs from all agents")
+    parser.add_argument("--custom", help="Remove specific server configs (e.g., --custom=mcp-name)")
     args = parser.parse_args()
 
     root_path = get_project_root()

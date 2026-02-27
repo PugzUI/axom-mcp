@@ -126,27 +126,19 @@ def _build_ascii_grid(
     widths: dict[str, int] = {}
     for col in columns:
         sample_values = [str(item.get(col, "")) for item in items[:max_rows]]
-        max_len = (
-            max([len(col)] + [len(v) for v in sample_values])
-            if sample_values
-            else len(col)
-        )
+        max_len = max([len(col)] + [len(v) for v in sample_values]) if sample_values else len(col)
         widths[col] = min(max(max_len, 8), 36)
 
     def _sep(char: str = "-") -> str:
         parts = [char * widths[col] for col in columns]
         return "+" + "+".join(parts) + "+"
 
-    header = (
-        "|" + "|".join(_fit_cell(col.upper(), widths[col]) for col in columns) + "|"
-    )
+    header = "|" + "|".join(_fit_cell(col.upper(), widths[col]) for col in columns) + "|"
     lines = [_sep("-"), header, _sep("=")]
 
     for row in items[:max_rows]:
         lines.append(
-            "|"
-            + "|".join(_fit_cell(row.get(col, ""), widths[col]) for col in columns)
-            + "|"
+            "|" + "|".join(_fit_cell(row.get(col, ""), widths[col]) for col in columns) + "|"
         )
 
     lines.append(_sep("-"))
@@ -155,9 +147,7 @@ def _build_ascii_grid(
     return lines
 
 
-def _render_pretty_markdown(
-    tool_name: str, arguments: dict[str, Any], payload: Any
-) -> str:
+def _render_pretty_markdown(tool_name: str, arguments: dict[str, Any], payload: Any) -> str:
     """Render parsed JSON payload as a compact markdown report."""
     if not isinstance(payload, dict):
         return f"**{tool_name}**\n\n```json\n{json.dumps(payload, indent=2)}\n```"
@@ -204,9 +194,7 @@ def _render_pretty_markdown(
     return "\n".join(lines)
 
 
-def _render_neon_markdown(
-    tool_name: str, arguments: dict[str, Any], payload: Any
-) -> str:
+def _render_neon_markdown(tool_name: str, arguments: dict[str, Any], payload: Any) -> str:
     """Render terminal-inspired neon-style ASCII output."""
     if not isinstance(payload, dict):
         return f"```text\n[ AXOM NEON PANEL ] {tool_name}\n{_truncate_value(payload, limit=500)}\n```\n\n```json\n{json.dumps(payload, indent=2)}\n```"
@@ -220,9 +208,7 @@ def _render_neon_markdown(
     lines = ["```text", top, title_line, divider]
 
     status = (
-        "error"
-        if payload.get("error")
-        else ("success" if payload.get("success") is True else "ok")
+        "error" if payload.get("error") else ("success" if payload.get("success") is True else "ok")
     )
     metadata_pairs: list[tuple[str, Any]] = [("status", status)]
     for key in ["action", "operation", "type", "domain", "query", "name", "count"]:
@@ -252,9 +238,7 @@ def _render_neon_markdown(
             columns = [col for col in preferred if col in first_keys] or first_keys[:4]
             grid = _build_ascii_grid(list_items, columns)
             for gline in grid:
-                lines.append(
-                    "| " + gline[: frame_width - 2].ljust(frame_width - 2) + " |"
-                )
+                lines.append("| " + gline[: frame_width - 2].ljust(frame_width - 2) + " |")
         else:
             compact = _truncate_value(payload[preview_key], limit=frame_width - 4)
             lines.append("| " + compact.ljust(frame_width - 1) + "|")
@@ -268,9 +252,7 @@ def _render_neon_markdown(
     return "\n".join(lines)
 
 
-def _format_tool_result(
-    tool_name: str, arguments: dict[str, Any], raw_result: str
-) -> str:
+def _format_tool_result(tool_name: str, arguments: dict[str, Any], raw_result: str) -> str:
     """Format tool response based on AXOM_TOOL_OUTPUT_STYLE."""
     style = _get_output_style()
     if style == "json":
@@ -391,6 +373,9 @@ MEMORY_TAG_RESOURCE_TEMPLATE = ResourceTemplate(
 )
 
 LIST_RESOURCES_MEMORY_LIMIT = 3
+
+# Static resource URI for tools index (included in default context)
+AXOM_TOOLS_URI = "axom://axom_tools"
 
 # Tool annotations for MCP protocol
 TOOL_ANNOTATIONS = {
@@ -720,6 +705,27 @@ Use chain parameter to continue processing transformed data.""",
     ),
 ]
 
+
+def _axom_tools_payload() -> list[dict[str, Any]]:
+    """Build axom_tools resource payload for default context."""
+    result = []
+    for t in TOOLS:
+        # id = tool name; name = human label from suffix after axom_mcp_
+        suffix = t.name.replace("axom_mcp_", "", 1) if t.name.startswith("axom_mcp_") else t.name
+        human_name = suffix.replace("_", " ").title()
+        # Use first line of description as summary (strip newlines)
+        desc = (t.description or "").strip().split("\n")[0]
+        result.append(
+            {
+                "id": t.name,
+                "name": human_name,
+                "description": desc or f"Axom MCP tool: {t.name}",
+                "enabled": True,
+            }
+        )
+    return result
+
+
 # Prompts
 PROMPTS = [
     Prompt(
@@ -921,24 +927,34 @@ def create_server() -> Server:
 
     @server.list_resources()
     async def list_resources() -> list[Resource]:
-        """List all available memory resources."""
+        """List all available resources (axom_tools index + memory resources)."""
+        resources: list[Resource] = [
+            Resource(
+                uri=cast(Any, AXOM_TOOLS_URI),
+                name="axom_tools",
+                description="Index of Axom MCP tools (id, name, description, enabled) for default context",
+                mimeType="application/json",
+            ),
+        ]
         try:
             db = await get_db_manager()
             memories = await db.list_memories(limit=LIST_RESOURCES_MEMORY_LIMIT)
 
-            return [
-                Resource(
-                    uri=cast(Any, f"memory://{m['name']}"),
-                    name=m["name"],
-                    description=f"{m['memory_type']} memory - {m['importance']} importance",
-                    mimeType="application/json",
-                )
-                for m in memories
-                if m.get("name")
-            ]
+            resources.extend(
+                [
+                    Resource(
+                        uri=cast(Any, f"memory://{m['name']}"),
+                        name=m["name"],
+                        description=f"{m['memory_type']} memory - {m['importance']} importance",
+                        mimeType="application/json",
+                    )
+                    for m in memories
+                    if m.get("name")
+                ]
+            )
         except Exception as e:
             logger.error(f"Failed to list resources: {e}")
-            return []
+        return resources
 
     @server.list_resource_templates()
     async def list_resource_templates() -> list[ResourceTemplate]:
@@ -954,8 +970,13 @@ def create_server() -> Server:
         """Read a specific resource by URI."""
         import json
 
-        db = await get_db_manager()
         uri_str = str(uri)
+
+        # Static tools index (default context)
+        if uri_str == AXOM_TOOLS_URI:
+            return json.dumps(_axom_tools_payload(), indent=2)
+
+        db = await get_db_manager()
 
         # Parse URI
         if uri_str.startswith("memory://"):
@@ -973,9 +994,7 @@ def create_server() -> Server:
             if path.startswith("tag/"):
                 tag = path[4:]
                 memories = await db.search_memories(query=None, tags=[tag], limit=50)
-                return json.dumps(
-                    {"tag": tag, "count": len(memories), "memories": memories}
-                )
+                return json.dumps({"tag": tag, "count": len(memories), "memories": memories})
 
             # Handle specific memory
             memory = await db.get_memory_by_name(path)
@@ -992,17 +1011,12 @@ def create_server() -> Server:
         return PROMPTS
 
     @server.get_prompt()
-    async def get_prompt(
-        name: str, arguments: dict[str, str] | None = None
-    ) -> GetPromptResult:
+    async def get_prompt(name: str, arguments: dict[str, str] | None = None) -> GetPromptResult:
         """Return prompt messages for a specific prompt."""
         args = arguments or {}
         context_banner = await _build_prompt_context_banner()
         if name == "memory-workflow":
-            task = (
-                args.get("task_description")
-                or "the task (infer from the user's message)"
-            )
+            task = args.get("task_description") or "the task (infer from the user's message)"
             return GetPromptResult(
                 messages=[
                     PromptMessage(
@@ -1031,7 +1045,7 @@ Follow this workflow for: {task}
    ])
    ```
 
-4. **VERIFY**: Before claiming done, run the verification command (e.g. `make test`, `pytest path/to/test.py`). Evidence before claims.
+4. **VERIFY**: Before claiming done, run the verification command or workflow / skill guide (e.g. `make test`, `pytest path/to/test.py`). Evidence before claims.
 
 5. **STORE**: After completion, store key insights with REFLECTION:
    ```
@@ -1058,14 +1072,8 @@ Failure to search creates duplicate work; failure to store loses institutional k
             )
 
         elif name == "debug-session":
-            error = (
-                args.get("error_description")
-                or "the error (infer from the user's message)"
-            )
-            context = (
-                args.get("context")
-                or "relevant context (infer from the user's message)"
-            )
+            error = args.get("error_description") or "the error (infer from the user's message)"
+            context = args.get("context") or "relevant context (infer from the user's message)"
             return GetPromptResult(
                 messages=[
                     PromptMessage(
@@ -1126,10 +1134,7 @@ Follow these steps:
             )
 
         elif name == "code-review":
-            target = (
-                args.get("target_path")
-                or "the target (infer path from the user's message)"
-            )
+            target = args.get("target_path") or "the target (infer path from the user's message)"
             focus = (
                 args.get("focus_area")
                 or "focus area (infer from the user's message, or general quality)"
@@ -1172,14 +1177,8 @@ Steps:
             )
 
         elif name == "systematic-debug":
-            error = (
-                args.get("error_description")
-                or "the error (infer from the user's message)"
-            )
-            context = (
-                args.get("context")
-                or "relevant context (infer from the user's message)"
-            )
+            error = args.get("error_description") or "the error (infer from the user's message)"
+            context = args.get("context") or "relevant context (infer from the user's message)"
             return GetPromptResult(
                 messages=[
                     PromptMessage(
@@ -1293,9 +1292,7 @@ async def run_server() -> None:
     """Run the MCP server with stdio transport."""
     server = create_server()
     async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream, write_stream, server.create_initialization_options()
-        )
+        await server.run(read_stream, write_stream, server.create_initialization_options())
 
 
 def main() -> None:

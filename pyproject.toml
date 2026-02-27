@@ -1,5 +1,7 @@
 [build-system]
-requires = ["hatchling"]
+requires = [
+  "hatchling",
+]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,51 +10,42 @@ version = "2.0.0"
 description = "MCP server providing AI agents with persistent memory, tool abstraction, and chain-reaction capabilities"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = { text = "MIT" }
 authors = [
-    {name = "CNS Team"}
+  { name = "Pugzy" },
 ]
 keywords = [
-    "mcp",
-    "model-context-protocol",
-    "ai-memory",
-    "persistent-memory",
-    "tool-abstraction",
-    "chain-reactions",
-    "ai-agents",
-    "axon",
-    "neural",
-    "memory-pathways"
+  "mcp",
+  "model-context-protocol",
+  "ai",
+  "agents",
+  "memory",
+  "persistent-context",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: <=3.11",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "mcp>=1.2.0",
-    "pydantic>=2.0.0",
-    "aiosqlite>=0.19.0",
-    "ddgs>=9.0.0",
-    "python-dotenv>=1.0.0",
-    "typer[all]>=0.12.0",
+  "mcp>=1.20.0",
+  "pydantic>=2.0.0",
+  "aiosqlite>=0.20.0",
+  "python-dotenv>=1.0.0",
+  "typer>=0.21.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=5.0.0",
-    "ruff>=0.8.0",
-    "mypy>=1.0.0",
+  "pytest>=8.0.0",
+  "pytest-asyncio>=0.24.0",
+  "pytest-cov>=5.0.0",
+  "ruff>=0.14.0",
 ]
 yaml = [
-    "pyyaml>=6.0.0",
+  "pyyaml>=6.0.0",
 ]
 
 [project.urls]
@@ -69,56 +62,76 @@ axom-mcp = "axom_mcp.server:main"
 axom = "axom_mcp.server:create_server"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/axom_mcp"]
+packages = [
+  "src/axom_mcp",
+]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/src/axom_mcp",
-    "/README.md",
-    "/LICENSE",
+  "src/axom_mcp",
+  "README.md",
+  "LICENSE",
 ]
-
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = [
+  "tests",
+]
 markers = [
-    "unit: Unit tests (fast, no external dependencies)",
-    "integration: Integration tests (may require database)",
-    "slow: Slow tests (skip with -m 'not slow')",
-    "database: Tests requiring database connection",
-    "filesystem: Tests requiring filesystem access",
-    "drift: Drift detection tests for workflow validation",
+  "unit: Unit tests (fast, no external dependencies)",
+  "integration: Integration tests (may require database)",
+  "slow: Slow tests (skip with -m 'not slow')",
+  "database: Tests requiring database connection",
+  "filesystem: Tests requiring filesystem access",
+  "drift: Drift detection tests for workflow validation",
 ]
 addopts = [
-    "-v",
-    "--tb=short",
-    "-ra",
+  "-v",
+  "--tb=short",
+  "-ra",
 ]
 filterwarnings = [
-    "ignore::DeprecationWarning",
+  "ignore::DeprecationWarning",
 ]
 
 [tool.coverage.run]
-source = ["src/axom_mcp"]
+source = [
+  "src/axom_mcp",
+]
 branch = false
 omit = [
-    "*/tests/*",
-    "*/__pycache__/*",
+  "*/tests/*",
+  "*/__pycache__/*",
 ]
 
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
+  "pragma: no cover",
+  "def __repr__",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
 ]
 show_missing = true
 skip_covered = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = [
+  "src",
+  "tests",
+]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+]
+
+[tool.pyrefly]
+displayTypeErrors = false
+enabled = true

@@ -42,8 +42,7 @@ For Zed, only MCP configuration is installed. To use Axom rules:
 1. Re-run install from the repo root: `make install`.
 2. Confirm command exists: `command -v axom-mcp`.
 3. For Cursor, verify `~/.cursor/mcp.json` uses:
-   - `mcpServers.axom.command = "axom-mcp"`
-   - `mcpServers.axom.args = []`
+   - `mcpServers.axom.command = "axom-mcp"` (args optional, omit if empty)
 4. Restart the IDE/client after config changes.
 
 ### Chain Execution Failed

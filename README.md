@@ -41,57 +41,23 @@ make install
 4. Configures all detected agents (Cursor, Trae, etc.).
 5. Installs Axom rules and skills for each agent.
 
-### Verification
+### Make Command Menu - Overview
 
 ```bash
-make test      # Run tests
-make lint      # Run ruff linter
-make format    # Format and fix with ruff
+make help              # Project command menu
+make install-help      # Install options (e.g. DRY_RUN, etc.)
+make clean-help        # Cleanup options (incl. CLEAN_ALL=1 for full reset)
+make agents-help       # Agent commands
+make db-help           # Database commands
+make test-help         # Test commands
 ```
 
-### Make Help
-
-Project menus (not GNU Make's built-in). Use `-h` or `-help` consistently:
-
-- `**make make-h**` / `**make make-help**` / `**make h**` / `**make help**` — project command menu
-- `**make install-h**` / `**make install-help**` — install options (DRY_RUN, etc.)
-- `**make clean-h**` / `**make clean-help**` — cleanup options
-- `**make agents-h**` / `**make agents-help**` — agent commands
-- `**make db-h**` / `**make db-help**` — database commands
-- `**make test-h**` / `**make test-help**` — test commands
-- `**make lint-h**` / `**make lint-help**` — lint commands
-
-> **Note:** `make -h` and `make install -h` show GNU Make's built-in options, not our menus. Use `make make-h`, `make make-help`, `make h`, or `make help` for the project menu.
-
-### Post-Install Check
-
-Verify the local command is available:
+### Ruff Dev Tool Commands
 
 ```bash
-command -v axom-mcp
+make lint-help         # Lint commands (ruff dev tool)
+make format-help       # Format commands (ruff dev tool)
 ```
-
-Verify MCP initialization against the installed server:
-
-```bash
-python3 - <<'PY'
-import asyncio
-from mcp import ClientSession
-from mcp.client.stdio import stdio_client, StdioServerParameters
-
-async def main():
-    params = StdioServerParameters(command="axom-mcp", args=[])
-    async with stdio_client(params) as (read_stream, write_stream):
-        async with ClientSession(read_stream, write_stream) as session:
-            await session.initialize()
-            tools = await session.list_tools()
-            print("tool_count:", len(tools.tools))
-
-asyncio.run(main())
-PY
-```
-
----
 
 ## Client Configuration
 
@@ -109,8 +75,7 @@ For Cursor, `~/.cursor/mcp.json` should contain:
 {
   "mcpServers": {
     "axom": {
-      "command": "axom-mcp",
-      "args": []
+      "command": "axom-mcp"
     }
   }
 }
@@ -119,9 +84,8 @@ For Cursor, `~/.cursor/mcp.json` should contain:
 For Codex, `~/.codex/config.toml` should contain:
 
 ```toml
-[context_servers.axom]
+[mcp_servers.axom]
 command = "axom-mcp"
-args = []
 ```
 
 ---
@@ -131,7 +95,7 @@ args = []
 Axom provides five core MCP tools:
 
 - `**axom_mcp_memory**`: Store and retrieve persistent context.
-- `**axom_mcp_exec**`: File operations and shell commands with chaining.
+- `**axom_mcp_exec**`: File operations and shell commands with pre-meditated chaining.
 - `**axom_mcp_analyze**`: Code analysis and debugging.
 - `**axom_mcp_discover**`: Map environment and capabilities.
 - `**axom_mcp_transform**`: Convert data between formats.
@@ -144,4 +108,3 @@ Axom provides five core MCP tools:
 - [Tool Reference](docs/tools.md) - Detailed tool parameters.
 - [Agent Guide](docs/agents/INDEX.md) - How to use Axom with AI agents.
 - [Troubleshooting](docs/agents/TROUBLESHOOTING.md) - Common issues and fixes.
-
