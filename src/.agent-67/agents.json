@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "shared": {
+    "skills": [
+      "agent-67"
+    ],
+    "mcpServers": {
+      "Codex": {
+        "command": "codex",
+        "args": [
+          "mcp-server"
+        ]
+      },
+      "Ref": {
+        "type": "http",
+        "url": "https://api.ref.tools/mcp?apiKey=${REF_API_KEY}",
+        "headers": {}
+      },
+      "Tauri": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@hypothesi/tauri-mcp-server"
+        ],
+        "env": {}
+      },
+      "ChromeDevTools": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "chrome-devtools-mcp@latest",
+          "--browser-url=http://127.0.0.1:9222"
+        ],
+        "env": {},
+        "startup_timeout_ms": 20000
+      },
+      "Websets": {
+        "type": "http",
+        "url": "https://websetsmcp.exa.ai/mcp?exaApiKey=${EXA_API_KEY}",
+        "headers": {}
+      }
+    }
+  },
+  "agents": {
+    "codex": {
+      "enabled": false,
+      "paths": {
+        "skills": "~/.codex/skills",
+        "config": "~/.codex/config.toml"
+      },
+      "requiredEnv": [
+        "EXA_API_KEY",
+        "REF_API_KEY"
+      ]
+    },
+    "cursor": {
+      "enabled": false,
+      "paths": {
+        "skills-cursor": "~/.cursor/skills-cursor",
+        "mcp": "~/.cursor/mcp.json"
+      },
+      "requiredEnv": [
+        "EXA_API_KEY",
+        "REF_API_KEY"
+      ]
+    },
+    "claude": {
+      "enabled": false,
+      "paths": {
+        "skills": "~/.claude/skills"
+      },
+      "requiredEnv": []
+    },
+    "gemini": {
+      "enabled": false,
+      "paths": {
+        "mcp": "~/.gemini/mcp.json"
+      },
+      "requiredEnv": [
+        "EXA_API_KEY",
+        "REF_API_KEY"
+      ]
+    },
+    "kiro": {
+      "enabled": false,
+      "paths": {
+        "agents": "~/.kiro/AGENTS.md"
+      },
+      "requiredEnv": []
+    },
+    "kilocode": {
+      "enabled": false,
+      "paths": {
+        "mcp": "~/.kilocode/mcp.json",
+        "skills": "~/.kilocode/skills"
+      },
+      "requiredEnv": []
+    },
+    "cline": {
+      "enabled": false,
+      "paths": {
+        "mcp": "~/.cline/mcp.json",
+        "skills": "~/.cline/skills"
+      },
+      "requiredEnv": []
+    },
+    "vibe": {
+      "enabled": false,
+      "paths": {
+        "config": "~/.vibe/config.toml"
+      },
+      "requiredEnv": []
+    }
+  }
+}

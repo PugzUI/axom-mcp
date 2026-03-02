@@ -4,7 +4,7 @@
 Analysis without storage is wasted. Chain findings to memory.
 Use reflex for heuristics.
 
-## ⚠️ Core Mandate
+## Core Mandate
 
 **Analysis without storage is wasted insight.** Use `chain`
 to write findings to memory. The next agent (or you, later)
