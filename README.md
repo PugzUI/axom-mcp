@@ -1,3 +1,5 @@
+**Archived**: there's been many significant improvements to agentic frameworks and I don't feel like this will be worth maintaining
+
 # Axom MCP Server
 
 Axom is a **Model Context Protocol (MCP)** server that provides persistent memory, tool abstraction, and chain-of-thought for AI agents.
