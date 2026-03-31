@@ -1,4 +1,4 @@
-**Archived**: there's been many significant improvements to agentic frameworks and I don't feel like this will be worth maintaining
+**Archived**: **_There's been many significant improvements to agentic frameworks since I first made this server, many of it's features are implemented natively in most agents today_**
 
 # Axom MCP Server
 
