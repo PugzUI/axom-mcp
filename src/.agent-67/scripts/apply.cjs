@@ -316,10 +316,10 @@ function buildKiroBlock() {
   return [
     '# Agent 67',
     '',
-    '- Source of truth lives in `C:\\Users\\User\\.agent-67`.',
-    '- Edit shared skills, rules, and config only at `C:\\Users\\User\\.agentskills\\`.',
-    '- Resolve secrets from OS env first, then `C:\\Users\\User\\.agent-67\\.env`.',
-    '- Run `C:\\Users\\User\\.agent-67\\scripts\\windows.ps1` after changes.',
+    '- Source of truth lives in `~/.agent-67`.',
+    '- Edit shared skills, rules, and config only at `~/.agentskills/`.',
+    '- Resolve secrets from OS env first, then `~/.agent-67/.env`.',
+    '- Run `~/.agent-67/scripts/linux.sh` (or `windows.ps1` on Windows) after changes.',
     '- Verify local config is present before claiming setup is complete.',
     '- Tell the user to restart Kiro after apply.',
   ].join('\n');

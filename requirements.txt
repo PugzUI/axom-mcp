@@ -1,10 +1,7 @@
 # Axom MCP Server - Python Dependencies
 
-# Database driver for SQLite (migrated from PostgreSQL)
+# Database driver for SQLite
 aiosqlite>=0.19.0
-
-# Web search fallback when memory search returns no results
-ddgs>=9.0.0
 
 # CLI and terminal output
 typer[all]>=0.12.0

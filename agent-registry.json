@@ -2,7 +2,7 @@
   "_metadata": {
     "version": "1.0.0",
     "description": "Agent configuration registry for Axom MCP. Add new agents via PR.",
-    "contribute_url": "https://github.com/kilo-axom/axom/pulls"
+    "contribute_url": "https://github.com/PugzUI/axom-mcp/pulls"
   },
   "agents": {
     "cursor": {
@@ -237,7 +237,7 @@
           },
           "configs": {
             "mcp": {
-              "path": "~/.antigravity/mcp.json",
+              "path": "~/.gemini/antigravity/mcp_config.json",
               "format": "json",
               "key": "mcpServers"
             },

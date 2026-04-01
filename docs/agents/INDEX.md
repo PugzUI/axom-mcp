@@ -148,18 +148,31 @@ Challenges itself, other agents, and users to re-think.
 | [axom-analyze](skills/axom-analyze/SKILL.md)     | Deep analysis. Actionable output. Memory integration.                            |
 | [axom-transform](skills/axom-transform/SKILL.md) | Format mastery. Pipeline glue. Data flow.                                        |
 
+## URI Resources (Default Context)
+
+| URI              | Description                                                  |
+| :--------------- | :----------------------------------------------------------- |
+| **axom_toolkit** | Tools index (id, name, description, enabled)                 |
+| **axom_agents**  | Subagents registry (axom_exec, axom_reader, axom_researcher) |
+| **axom_context** | Three most recent memories                                   |
+
+Load via MCP `ReadResource` with URIs `axom://axom_toolkit`, `axom://axom_agents`, `axom://axom_context`.
+
 ---
 
 ## Related Documentation
 
-| Doc                                                                                                    | Purpose                          |
-| :----------------------------------------------------------------------------------------------------- | :------------------------------- |
-| [Rules Reference](rules/axom-core.md)                                                                  | Mandatory agent behavior         |
-| Prompts: memory-workflow, debug-session, systematic-debug, complex-problem, code-review, store-pattern | Structured workflows             |
-| [Subagent: Axom Context Gatherer](subagent/axom-agent.md)                                              | Context for dispatched subagents |
-| [Architecture Overview](../../architecture.md)                                                         | System design                    |
-| [Troubleshooting Guide](TROUBLESHOOTING.md)                                                            | Common issues and fixes          |
+| Doc                                                                                                    | Purpose                                 |
+| :----------------------------------------------------------------------------------------------------- | :-------------------------------------- |
+| [Rules Reference](rules/axom-core.md)                                                                  | Mandatory agent behavior                |
+| Prompts: memory-workflow, debug-session, systematic-debug, complex-problem, code-review, store-pattern | Structured workflows                    |
+| [Subagents](subagents/)                                                                                | axom_exec, axom_reader, axom_researcher |
+| [Subagent: Axom Reader](subagents/axom-reader.md)                                                      | Context, docs, DB specialist            |
+| [Subagent: Axom Exec](subagents/axom-exec.md)                                                          | API/MCP/shell execution                 |
+| [Subagent: Axom Researcher](subagents/axom-researcher.md)                                              | Search, filter slop                     |
+| [Architecture Overview](../../architecture.md)                                                         | System design                           |
+| [Troubleshooting Guide](TROUBLESHOOTING.md)                                                            | Common issues and fixes                 |
 
 ---
 
-_Last updated: 2026-02-22_
+_Last updated: 2026-02-27_

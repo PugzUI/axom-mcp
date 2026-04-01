@@ -530,7 +530,7 @@ class TestModuleExports:
         """Test __version__ is defined."""
         from axom_mcp import __version__
 
-        assert __version__ == "2.0.0"
+        assert __version__ == "3.0.0"
 
 
 # ============================================================================
@@ -573,9 +573,7 @@ class TestServerDriftDetection:
         actions = memory_tool.inputSchema["properties"]["action"]["enum"]
         expected = ["read", "write", "list", "search", "delete", "associate"]
 
-        assert set(actions) == set(expected), (
-            f"Memory actions drifted: {actions} != {expected}"
-        )
+        assert set(actions) == set(expected), f"Memory actions drifted: {actions} != {expected}"
 
     @pytest.mark.drift
     def test_memory_types_unchanged(self):
@@ -586,9 +584,7 @@ class TestServerDriftDetection:
         types = memory_tool.inputSchema["properties"]["memory_type"]["enum"]
         expected = ["long_term", "short_term", "reflex", "dreams"]
 
-        assert set(types) == set(expected), (
-            f"Memory types drifted: {types} != {expected}"
-        )
+        assert set(types) == set(expected), f"Memory types drifted: {types} != {expected}"
 
     @pytest.mark.drift
     def test_importance_levels_unchanged(self):
@@ -599,9 +595,7 @@ class TestServerDriftDetection:
         levels = memory_tool.inputSchema["properties"]["importance"]["enum"]
         expected = ["low", "high", "critical"]
 
-        assert set(levels) == set(expected), (
-            f"Importance levels drifted: {levels} != {expected}"
-        )
+        assert set(levels) == set(expected), f"Importance levels drifted: {levels} != {expected}"
 
     @pytest.mark.drift
     def test_exec_operations_unchanged(self):
@@ -612,9 +606,7 @@ class TestServerDriftDetection:
         ops = exec_tool.inputSchema["properties"]["operation"]["enum"]
         expected = ["read", "write", "shell"]
 
-        assert set(ops) == set(expected), (
-            f"Exec operations drifted: {ops} != {expected}"
-        )
+        assert set(ops) == set(expected), f"Exec operations drifted: {ops} != {expected}"
 
     @pytest.mark.drift
     def test_analyze_types_unchanged(self):
@@ -625,9 +617,7 @@ class TestServerDriftDetection:
         types = analyze_tool.inputSchema["properties"]["type"]["enum"]
         expected = ["debug", "review", "audit", "refactor", "test"]
 
-        assert set(types) == set(expected), (
-            f"Analyze types drifted: {types} != {expected}"
-        )
+        assert set(types) == set(expected), f"Analyze types drifted: {types} != {expected}"
 
     @pytest.mark.drift
     def test_analyze_depths_unchanged(self):
@@ -638,9 +628,7 @@ class TestServerDriftDetection:
         depths = analyze_tool.inputSchema["properties"]["depth"]["enum"]
         expected = ["minimal", "low", "medium", "high", "max"]
 
-        assert set(depths) == set(expected), (
-            f"Analyze depths drifted: {depths} != {expected}"
-        )
+        assert set(depths) == set(expected), f"Analyze depths drifted: {depths} != {expected}"
 
     @pytest.mark.drift
     def test_discover_domains_unchanged(self):
@@ -651,9 +639,7 @@ class TestServerDriftDetection:
         domains = discover_tool.inputSchema["properties"]["domain"]["enum"]
         expected = ["files", "tools", "memory", "capabilities", "all"]
 
-        assert set(domains) == set(expected), (
-            f"Discover domains drifted: {domains} != {expected}"
-        )
+        assert set(domains) == set(expected), f"Discover domains drifted: {domains} != {expected}"
 
     @pytest.mark.drift
     def test_transform_formats_unchanged(self):
@@ -664,9 +650,7 @@ class TestServerDriftDetection:
         formats = transform_tool.inputSchema["properties"]["output_format"]["enum"]
         expected = ["json", "yaml", "csv", "markdown", "code"]
 
-        assert set(formats) == set(expected), (
-            f"Transform formats drifted: {formats} != {expected}"
-        )
+        assert set(formats) == set(expected), f"Transform formats drifted: {formats} != {expected}"
 
     @pytest.mark.drift
     def test_tool_annotations_keys_unchanged(self):

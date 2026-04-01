@@ -14,7 +14,7 @@ Bring a repository to a pristine state without cutting quality:
 2. Resolve lint/diagnostic issues.
 3. Ensure full test success.
 4. Update docs and changelog.
-5. Sync docs to `/home/user/data/db/obsidian/<PROJECT>` with preserved relative paths.
+5. Sync docs to `$OBSIDIAN_VAULT/<PROJECT>` with preserved relative paths.
 6. Commit and push cleanly.
 
 ## 2) Agent Operating Rules
@@ -137,15 +137,15 @@ Exit criteria:
 
 ### Gate H: Docs Sync to Obsidian
 
-Target root: `/home/user/data/db/obsidian/<PROJECT>`
+Target root: `$OBSIDIAN_VAULT/<PROJECT>`
 
 1. Sync only after docs/changelog are final.
 2. Preserve repository-relative paths.
 
 Required mapping examples:
 
-1. `docs/tools.md` -> `/home/user/data/db/obsidian/<PROJECT>/<PROJECT>/docs/tools.md`
-2. `docs/changelog.md` -> `/home/user/data/db/obsidian/<PROJECT>/<PROJECT>/docs/changelog.md`
+1. `docs/tools.md` -> `$OBSIDIAN_VAULT/<PROJECT>/<PROJECT>/docs/tools.md`
+2. `docs/changelog.md` -> `$OBSIDIAN_VAULT/<PROJECT>/<PROJECT>/docs/changelog.md`
 
 Exit criteria:
 

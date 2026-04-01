@@ -33,11 +33,6 @@
         ],
         "env": {},
         "startup_timeout_ms": 20000
-      },
-      "Websets": {
-        "type": "http",
-        "url": "https://websetsmcp.exa.ai/mcp?exaApiKey=${EXA_API_KEY}",
-        "headers": {}
       }
     }
   },

@@ -56,7 +56,7 @@ async def test_server_request_handlers_and_prompt_variants(tmp_path, monkeypatch
     assert "success" in known_tool.root.content[0].text
 
     resources = await handlers[ListResourcesRequest](ListResourcesRequest())
-    assert len(resources.root.resources) >= 1
+    assert len(resources.root.resources) >= 3  # axom_toolkit, axom_agents, axom_context
 
     templates = await handlers[ListResourceTemplatesRequest](ListResourceTemplatesRequest())
     assert len(templates.root.resourceTemplates) == 3
@@ -76,15 +76,15 @@ async def test_server_request_handlers_and_prompt_variants(tmp_path, monkeypatch
     )
     assert "tag" in tag_res.root.contents[0].text
 
-    # axom_tools resource (tools index for default context)
-    axom_tools_uris = [
-        r.uri for r in resources.root.resources if getattr(r, "name", None) == "axom_tools"
+    # axom_toolkit resource (tools index for default context)
+    axom_toolkit_uris = [
+        r.uri for r in resources.root.resources if getattr(r, "name", None) == "axom_toolkit"
     ]
-    assert len(axom_tools_uris) == 1
-    axom_tools_res = await handlers[ReadResourceRequest](
-        ReadResourceRequest(params={"uri": axom_tools_uris[0]})
+    assert len(axom_toolkit_uris) == 1
+    axom_toolkit_res = await handlers[ReadResourceRequest](
+        ReadResourceRequest(params={"uri": axom_toolkit_uris[0]})
     )
-    data = json.loads(axom_tools_res.root.contents[0].text)
+    data = json.loads(axom_toolkit_res.root.contents[0].text)
     assert isinstance(data, list)
     assert len(data) == 5  # memory, exec, analyze, discover, transform
     ids = {o["id"] for o in data}
@@ -92,6 +92,32 @@ async def test_server_request_handlers_and_prompt_variants(tmp_path, monkeypatch
     for o in data:
         assert "id" in o and "name" in o and "description" in o and "enabled" in o
         assert o["enabled"] is True
+
+    # axom_agents resource (subagents registry)
+    axom_agents_uris = [
+        r.uri for r in resources.root.resources if getattr(r, "name", None) == "axom_agents"
+    ]
+    assert len(axom_agents_uris) == 1
+    axom_agents_res = await handlers[ReadResourceRequest](
+        ReadResourceRequest(params={"uri": axom_agents_uris[0]})
+    )
+    agents_data = json.loads(axom_agents_res.root.contents[0].text)
+    assert isinstance(agents_data, list)
+    agent_ids = {a["id"] for a in agents_data}
+    assert (
+        "axom_exec" in agent_ids and "axom_reader" in agent_ids and "axom_researcher" in agent_ids
+    )
+
+    # axom_context resource (3 most recent memories)
+    axom_context_uris = [
+        r.uri for r in resources.root.resources if getattr(r, "name", None) == "axom_context"
+    ]
+    assert len(axom_context_uris) == 1
+    axom_context_res = await handlers[ReadResourceRequest](
+        ReadResourceRequest(params={"uri": axom_context_uris[0]})
+    )
+    context_data = json.loads(axom_context_res.root.contents[0].text)
+    assert "memories" in context_data and "count" in context_data
 
     with pytest.raises(ValueError):
         await handlers[ReadResourceRequest](ReadResourceRequest(params={"uri": "bad://uri"}))

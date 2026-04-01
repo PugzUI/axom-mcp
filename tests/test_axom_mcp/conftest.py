@@ -544,7 +544,7 @@ def test_env(clean_env):
     """Set up test environment variables."""
     os.environ["AXOM_DATABASE_URL"] = "postgresql://test:test@localhost:5432/test_axom"
     os.environ["AXOM_READ_ONLY"] = "false"
-    os.environ["ALLOWED_PATHS"] = "/tmp,/home/user/projects"
+    os.environ["ALLOWED_PATHS"] = "/tmp,/home/testuser/projects"
     yield
     # clean_env handles cleanup
 

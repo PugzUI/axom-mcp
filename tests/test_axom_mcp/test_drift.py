@@ -242,9 +242,7 @@ class TestHandlerBehaviorDrift:
         from axom_mcp.handlers.memory import handle_memory
 
         mock_db = AsyncMock()
-        mock_db.create_memory = AsyncMock(
-            return_value="12345678-1234-1234-1234-123456789abc"
-        )
+        mock_db.create_memory = AsyncMock(return_value="12345678-1234-1234-1234-123456789abc")
 
         with patch("axom_mcp.handlers.memory.get_db_manager", return_value=mock_db):
             result_str = await handle_memory(
@@ -297,9 +295,7 @@ class TestHandlerBehaviorDrift:
         result = await handle_discover({"domain": "tools"})
 
         # Result should contain tool information
-        assert "tools" in result or "results" in result, (
-            "Discover tools result missing tool list"
-        )
+        assert "tools" in result or "results" in result, "Discover tools result missing tool list"
 
 
 # ============================================================================
@@ -330,7 +326,7 @@ class TestVersionDrift:
         from axom_mcp import __version__
 
         # This test should be updated when version is intentionally changed
-        expected_version = "2.0.0"
+        expected_version = "3.0.0"
 
         assert __version__ == expected_version, (
             f"Version changed from '{expected_version}' to '{__version__}'!\n"
@@ -461,9 +457,7 @@ class TestAnnotationDrift:
         expected_readonly = {"analyze", "discover", "transform"}
 
         actual_readonly = {
-            name
-            for name, ann in TOOL_ANNOTATIONS.items()
-            if ann["readOnlyHint"] is True
+            name for name, ann in TOOL_ANNOTATIONS.items() if ann["readOnlyHint"] is True
         }
 
         assert actual_readonly == expected_readonly, (
@@ -480,9 +474,7 @@ class TestAnnotationDrift:
         expected_destructive = {"memory", "exec"}
 
         actual_destructive = {
-            name
-            for name, ann in TOOL_ANNOTATIONS.items()
-            if ann["destructiveHint"] is True
+            name for name, ann in TOOL_ANNOTATIONS.items() if ann["destructiveHint"] is True
         }
 
         assert actual_destructive == expected_destructive, (
@@ -528,9 +520,7 @@ class TestIntegrationDrift:
         actual_exports = set(dir(handlers))
 
         for handler in expected_handlers:
-            assert handler in actual_exports, (
-                f"Handler '{handler}' not found in handlers module!"
-            )
+            assert handler in actual_exports, f"Handler '{handler}' not found in handlers module!"
 
     @pytest.mark.drift
     def test_resource_templates_exist(self):

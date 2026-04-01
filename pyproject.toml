@@ -6,13 +6,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "axom-mcp"
-version = "2.0.0"
-description = "MCP server providing AI agents with persistent memory, tool abstraction, and chain-reaction capabilities"
+version = "3.0.0"
+description = "Axom MCP Server - Async Agentic Memory & Task Orchestration"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
-  { name = "Pugzy" },
+  { name = "Axom Contributors" },
 ]
 keywords = [
   "mcp",
@@ -26,7 +26,7 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: <=3.11",
+  "Programming Language :: Python :: 3.11",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [

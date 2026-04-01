@@ -14,8 +14,8 @@ Usage:
     server = create_server()
 """
 
-__version__ = "2.0.0"
-__author__ = "CNS Team"
+__version__ = "3.0.0"
+__author__ = "Axom Contributors"
 
 from .server import create_server, main, run_server
 

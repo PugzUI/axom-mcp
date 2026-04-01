@@ -367,9 +367,9 @@ async def test_server_call_tool_and_list_resources_error_paths(monkeypatch):
 
     monkeypatch.setattr(server, "get_db_manager", bad_db)
     res = await handlers[ListResourcesRequest](ListResourcesRequest())
-    # axom_tools is always present; memory list may be empty on error
+    # axom_toolkit is always present; memory list may be empty on error
     assert len(res.root.resources) >= 1
-    assert res.root.resources[0].name == "axom_tools"
+    assert res.root.resources[0].name == "axom_toolkit"
 
     # read resource unknown memory path branch
     async def ok_db():

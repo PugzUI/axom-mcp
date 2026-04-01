@@ -374,8 +374,10 @@ MEMORY_TAG_RESOURCE_TEMPLATE = ResourceTemplate(
 
 LIST_RESOURCES_MEMORY_LIMIT = 3
 
-# Static resource URI for tools index (included in default context)
-AXOM_TOOLS_URI = "axom://axom_tools"
+# Static resource URIs (default context)
+AXOM_TOOLKIT_URI = "axom://axom_toolkit"
+AXOM_AGENTS_URI = "axom://axom_agents"
+AXOM_CONTEXT_URI = "axom://axom_context"
 
 # Tool annotations for MCP protocol
 TOOL_ANNOTATIONS = {
@@ -706,14 +708,12 @@ Use chain parameter to continue processing transformed data.""",
 ]
 
 
-def _axom_tools_payload() -> list[dict[str, Any]]:
-    """Build axom_tools resource payload for default context."""
+def _axom_toolkit_payload() -> list[dict[str, Any]]:
+    """Build axom_toolkit resource payload (tools index for default context)."""
     result = []
     for t in TOOLS:
-        # id = tool name; name = human label from suffix after axom_mcp_
         suffix = t.name.replace("axom_mcp_", "", 1) if t.name.startswith("axom_mcp_") else t.name
         human_name = suffix.replace("_", " ").title()
-        # Use first line of description as summary (strip newlines)
         desc = (t.description or "").strip().split("\n")[0]
         result.append(
             {
@@ -724,6 +724,30 @@ def _axom_tools_payload() -> list[dict[str, Any]]:
             }
         )
     return result
+
+
+def _axom_agents_payload() -> list[dict[str, Any]]:
+    """Build axom_agents resource payload (subagents registry for orchestrator)."""
+    return [
+        {
+            "id": "axom_exec",
+            "name": "Axom Exec",
+            "description": "API & MCP calls and shell commands. File read/write, chains.",
+            "enabled": True,
+        },
+        {
+            "id": "axom_reader",
+            "name": "Axom Reader",
+            "description": "Context, documentation and database specialist.",
+            "enabled": True,
+        },
+        {
+            "id": "axom_researcher",
+            "name": "Axom Researcher",
+            "description": "Searches online or larger datasets; filters fake reviews and SEO/AI slop.",
+            "enabled": True,
+        },
+    ]
 
 
 # Prompts
@@ -894,7 +918,7 @@ def create_server() -> Server:
     """Create and configure the MCP server."""
     server = Server(
         name="axom",
-        version="2.0.0",
+        version="3.0.0",
     )
 
     @server.list_tools()
@@ -927,12 +951,24 @@ def create_server() -> Server:
 
     @server.list_resources()
     async def list_resources() -> list[Resource]:
-        """List all available resources (axom_tools index + memory resources)."""
+        """List all available resources (axom_toolkit, axom_agents, axom_context + memory)."""
         resources: list[Resource] = [
             Resource(
-                uri=cast(Any, AXOM_TOOLS_URI),
-                name="axom_tools",
+                uri=cast(Any, AXOM_TOOLKIT_URI),
+                name="axom_toolkit",
                 description="Index of Axom MCP tools (id, name, description, enabled) for default context",
+                mimeType="application/json",
+            ),
+            Resource(
+                uri=cast(Any, AXOM_AGENTS_URI),
+                name="axom_agents",
+                description="Subagents registry (axom_exec, axom_reader, axom_researcher) for orchestrator",
+                mimeType="application/json",
+            ),
+            Resource(
+                uri=cast(Any, AXOM_CONTEXT_URI),
+                name="axom_context",
+                description="Three most recent memories for default context",
                 mimeType="application/json",
             ),
         ]
@@ -973,8 +1009,16 @@ def create_server() -> Server:
         uri_str = str(uri)
 
         # Static tools index (default context)
-        if uri_str == AXOM_TOOLS_URI:
-            return json.dumps(_axom_tools_payload(), indent=2)
+        if uri_str == AXOM_TOOLKIT_URI:
+            return json.dumps(_axom_toolkit_payload(), indent=2)
+
+        if uri_str == AXOM_AGENTS_URI:
+            return json.dumps(_axom_agents_payload(), indent=2)
+
+        if uri_str == AXOM_CONTEXT_URI:
+            db_ctx = await get_db_manager()
+            memories = await db_ctx.list_memories(limit=3)
+            return json.dumps({"memories": memories, "count": len(memories)}, default=str)
 
         db = await get_db_manager()
 

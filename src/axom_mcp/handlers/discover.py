@@ -85,9 +85,7 @@ async def handle_discover(arguments: dict[str, Any]) -> str:
         return json.dumps({"error": str(e)})
 
 
-async def _discover_files(
-    filter_criteria: dict[str, Any], limit: int, recursive: bool
-) -> str:
+async def _discover_files(filter_criteria: dict[str, Any], limit: int, recursive: bool) -> str:
     """Discover files in allowed directories."""
     results: list[dict[str, Any]] = []
     pattern = filter_criteria.get("pattern", "*")
@@ -350,8 +348,8 @@ async def _discover_capabilities() -> str:
     capabilities = {
         "server": {
             "name": "axom",
-            "version": "2.0.0",
-            "description": "MCP server providing AI agents with persistent memory, tool abstraction, and chain-reaction capabilities",
+            "version": "3.0.0",
+            "description": "Axom MCP Server - Async Agentic Memory & Task Orchestration",
         },
         "features": {
             "memory": {
@@ -398,9 +396,7 @@ async def _discover_capabilities() -> str:
     )
 
 
-async def _discover_all(
-    filter_criteria: dict[str, Any], limit: int, recursive: bool
-) -> str:
+async def _discover_all(filter_criteria: dict[str, Any], limit: int, recursive: bool) -> str:
     """Comprehensive discovery across all domains."""
     results = {}
 

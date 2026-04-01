@@ -1,0 +1,22 @@
+Summarize documentation to use this exact holistic layout and source of truth, if we make any changes to this it means thats what will be refactored to cleanly, with no backwards compatability or custom patching.
+
+These settings are our distilled *SOURCE OF TRUTH* and will propagate throughout the project.
+Don't include more or less than whats included here:
+
+Rules Summary:
+- "axom_core"
+
+Tools Summary:
+- "axom_analyze"
+- "axom_discover"
+- "axom_memory"
+
+Subagent Summary:
+- "axom_exec"
+- "axom_reader"
+- "axom_researcher"
+
+URI Summary:
+- "axom_agents"
+- "axom_toolkit"
+- "axom_context"
