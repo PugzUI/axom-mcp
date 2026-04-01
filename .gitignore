@@ -5,10 +5,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C Extensions
-# =============================================================================
-*.so
-
 # Python Distribution / Packaging
 # =============================================================================
 .Python
@@ -54,11 +50,10 @@ coverage.xml
 .env
 .venv
 **/*.venv
+*.bak/
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
 
 # Node.js (if applicable)
 # =============================================================================
@@ -108,5 +103,7 @@ logs/
 # Development & Debugging
 # =============================================================================
 LICENSE
-*.db*
+*src/.agentskills/*
 *.sqlite*
+*.sql*
+*db/*
